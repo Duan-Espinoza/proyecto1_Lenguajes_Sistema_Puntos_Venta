@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "-o", "${fileBasenameNoExtension}.exe",
+        "${file}",
+        "-I", "C:\\Program Files\\MySQL\\MySQL Server 8.0\\include",
+        "-L", "C:\\Program Files\\MySQL\\MySQL Server 8.0\\lib",
+        "-lmysql"
+      ]
+    }
+  ]
+}
