@@ -17,6 +17,10 @@
   <p align="center">
     Duan Espinoza Olivares
   </p>
+
+  <p align="center">
+    GEOVANNI FRANCISCO GONZALEZ AGUILAR
+  </p>
  
   <br /> 
   <p align="center">
