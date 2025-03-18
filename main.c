@@ -44,6 +44,59 @@ int autenticar_admin(MYSQL *conn) {
     return num_rows > 0;
 }
 
+//Función que registra la familia de productos a la database
+void registrar_familia(MYSQL *conn) {
+    char descripcion[50];
+    
+    printf("\n--- REGISTRAR FAMILIA ---\n");
+    printf("Ingrese la descripción de la familia: ");
+    scanf(" %49[^\n]", descripcion);  // Leer hasta 49 caracteres incluyendo espacios
+
+    char query[200];
+    sprintf(query, "INSERT INTO familias (descripcion) VALUES ('%s')", descripcion);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Error al registrar familia: %s\n", mysql_error(conn));
+    } else {
+        printf("¡Familia '%s' registrada exitosamente!\n", descripcion);
+    }
+}
+
+//Función que registra los productos a la database
+void registrar_producto(MYSQL *conn) {
+    char nombre[50];
+    int familia_id;
+    float costo, precio;
+    int stock;
+
+    printf("\n--- REGISTRAR PRODUCTO ---\n");
+    printf("Nombre del producto: ");
+    scanf(" %49[^\n]", nombre);
+    printf("ID de la familia: ");
+    scanf("%d", &familia_id);
+    printf("Costo: ");
+    scanf("%f", &costo);
+    printf("Precio de venta: ");
+    scanf("%f", &precio);
+    printf("Stock inicial: ");
+    scanf("%d", &stock);
+
+    char query[300];
+    sprintf(query, 
+        "INSERT INTO productos (nombre, familia_id, costo, precio, stock) "
+        "VALUES ('%s', %d, %.2f, %.2f, %d)",
+        nombre, familia_id, costo, precio, stock
+    );
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Error al registrar producto: %s\n", mysql_error(conn));
+    } else {
+        printf("¡Producto '%s' registrado exitosamente!\n", nombre);
+    }
+}
+
+
+//Este es el menú que mostrará las opciones administrativas
 void menu_administrativo(MYSQL *conn) {
     int opcion_admin;
     do {
@@ -56,10 +109,10 @@ void menu_administrativo(MYSQL *conn) {
 
         switch (opcion_admin) {
             case 1:
-                // Registrar familia (implementar después)
+                registrar_familia(conn);
                 break;
             case 2:
-                // Registrar producto (implementar después)
+                registrar_producto(conn);
                 break;
             case 3:
                 printf("Volviendo al menú principal...\n");
