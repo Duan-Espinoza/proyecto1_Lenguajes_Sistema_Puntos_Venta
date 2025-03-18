@@ -52,6 +52,8 @@ int autenticar_admin(MYSQL *conn) {
 
 //Función que registra la familia de productos a la database
 void registrar_familia(MYSQL *conn) {
+     //Esta funcionalidad debe cambiar
+    // Debe solicitar una ruta, y segun el archivo de texto (csv) preferiblemente, incluirlo la información a la base de datos
     char descripcion[50];
     
     printf("\n--- REGISTRAR FAMILIA ---\n");
@@ -74,6 +76,10 @@ void registrar_producto(MYSQL *conn) {
     int familia_id;
     float costo, precio;
     int stock;
+
+    //Esta funcionalidad debe cambiar
+    // Debe solicitar una ruta, y segun el archivo de texto (csv) preferiblemente, incluirlo la información a la base de datos
+    
 
     printf("\n--- REGISTRAR PRODUCTO ---\n");
     printf("Nombre del producto: ");
