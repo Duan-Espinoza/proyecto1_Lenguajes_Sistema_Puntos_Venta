@@ -107,15 +107,108 @@ void registrar_producto(MYSQL *conn) {
     }
 }
 
+/**
+ * Función que carga un inventario desde un archivo de texto.
+ * El archivo debe tener el siguiente formato:
+ * ID,CANTIDAD
+ */
+void cargar_inventario(MYSQL *conn) {
+    char ruta_archivo[200];
+    printf("\n--- CARGA DE INVENTARIO ---\n");
+    printf("Ingrese la ruta del archivo: ");
+    scanf(" %199[^\n]", ruta_archivo);
+
+    FILE *archivo = fopen(ruta_archivo, "r");
+    if (!archivo) {
+        perror("Error al abrir el archivo");
+        return;
+    }
+
+    char linea[100];
+    int lineas_procesadas = 0;
+    int lineas_erroneas = 0;
+
+    while (fgets(linea, sizeof(linea), archivo)) {
+        // Eliminar salto de línea
+        linea[strcspn(linea, "\n")] = 0;
+
+        // Saltar líneas vacías o comentarios
+        if (strlen(linea) == 0 || linea[0] == '#') continue;
+
+        // Parsear ID y cantidad
+        int id_producto, cantidad;
+        if (sscanf(linea, "%d,%d", &id_producto, &cantidad) != 2) {
+            printf("Error en formato: %s\n", linea);
+            lineas_erroneas++;
+            continue;
+        }
+
+        // Validar existencia del producto
+        char query_verificar[100];
+        sprintf(query_verificar, "SELECT stock FROM productos WHERE id_producto = %d", id_producto);
+        
+        if (mysql_query(conn, query_verificar)) {
+            fprintf(stderr, "Error de consulta: %s\n", mysql_error(conn));
+            lineas_erroneas++;
+            continue;
+        }
+
+        MYSQL_RES *resultado = mysql_store_result(conn);
+        if (mysql_num_rows(resultado) == 0) {
+            printf("Producto ID %d no existe\n", id_producto);
+            lineas_erroneas++;
+            mysql_free_result(resultado);
+            continue;
+        }
+
+        // Calcular nuevo stock
+        MYSQL_ROW fila = mysql_fetch_row(resultado);
+        int stock_actual = atoi(fila[0]);
+        mysql_free_result(resultado);
+
+        int nuevo_stock = stock_actual + cantidad;
+        if (nuevo_stock < 0) {
+            printf("Stock negativo para ID %d: %d\n", id_producto, nuevo_stock);
+            lineas_erroneas++;
+            continue;
+        }
+
+        // Actualizar base de datos
+        char query_actualizar[200];
+        sprintf(query_actualizar, 
+            "UPDATE productos SET stock = %d WHERE id_producto = %d",
+            nuevo_stock, id_producto
+        );
+
+        if (mysql_query(conn, query_actualizar)) {
+            fprintf(stderr, "Error al actualizar: %s\n", mysql_error(conn));
+            lineas_erroneas++;
+        } else {
+            lineas_procesadas++;
+        }
+    }
+
+    fclose(archivo);
+    printf("\nResultado:\n");
+    printf("- Líneas procesadas: %d\n", lineas_procesadas);
+    printf("- Líneas con errores: %d\n", lineas_erroneas);
+}
+
 
 //Este es el menú que mostrará las opciones administrativas
+/**
+ * Función que muestra el menú administrativo.
+ * Permite registrar familias de productos, productos y cargar inventario.
+ * @param conn Conexión a la base de datos.
+ */
 void menu_administrativo(MYSQL *conn) {
     int opcion_admin;
     do {
         printf("\n--- MENÚ ADMINISTRATIVO ---\n");
         printf("1. Registrar familia de productos\n");
         printf("2. Registrar producto\n");
-        printf("3. Volver al menú principal\n");
+        printf("3. Cargar inventario\n");
+        printf("4. Volver al menú principal\n");
         printf("Seleccione una opción: ");
         scanf("%d", &opcion_admin);
 
@@ -127,12 +220,15 @@ void menu_administrativo(MYSQL *conn) {
                 registrar_producto(conn);
                 break;
             case 3:
+                cargar_inventario(conn);
+                break;
+            case 4:
                 printf("Volviendo al menú principal...\n");
                 break;
             default:
                 printf("Opción inválida.\n");
         }
-    } while (opcion_admin != 3);
+    } while (opcion_admin != 4);
 }
 
 void menu_principal() {
