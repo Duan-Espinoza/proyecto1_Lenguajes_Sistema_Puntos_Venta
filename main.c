@@ -111,6 +111,7 @@ void registrar_producto(MYSQL *conn) {
  * Función que carga un inventario desde un archivo de texto.
  * El archivo debe tener el siguiente formato:
  * ID,CANTIDAD
+ * @param conn Conexión a la base de datos.
  */
 void cargar_inventario(MYSQL *conn) {
     char ruta_archivo[200];
