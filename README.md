@@ -15,7 +15,7 @@
   </p>
 
   <p align="center">
-    Duan Espinoza Olivares
+    DUAN ANTONIO ESPINOZA OLIVARES
   </p>
 
   <p align="center">
@@ -28,6 +28,7 @@
   </p> 
  
   <p align="center">
+    Enlace del diagrama UML: https://lucid.app/lucidchart/58b36aa1-9ec3-4583-8b6f-e46f289f2288/edit?invitationId=inv_51d3c3af-0d32-4a54-b5ad-eb56d922a1ee&page=HWEp-vi-RSFO#
   
    
   <p align="center">
