@@ -9,7 +9,7 @@ SRC = src/main.c \
       src/models/database.c \
       src/utils/file_manager.c
 
-OBJ = $(SRC:.c=.o)
+OBJ = $(patsubst %.c, %.o, $(SRC))
 EXEC = sistema_ventas.exe
 
 all: $(EXEC)
