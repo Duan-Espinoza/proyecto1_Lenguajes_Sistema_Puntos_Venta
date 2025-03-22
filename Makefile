@@ -5,8 +5,8 @@ MYSQL_INCLUDE = -I"C:/Program Files/MySQL/MySQL Server 8.0/include"
 
 SRC = src/main.c \
       src/controllers/admin.c \
+      src/controllers/database.c \
       src/controllers/productos.c \
-      src/controllers/database.c \  # Ruta actualizada
       src/utils/file_manager.c
 
 OBJ = $(SRC:.c=.o)
@@ -16,16 +16,6 @@ all: $(EXEC)
 
 $(EXEC): $(OBJ)
 	$(CC) $(CFLAGS) $(MYSQL_INCLUDE) $(OBJ) -o $@ $(LDFLAGS)
-
-# Reglas de compilación optimizadas
-src/controllers/%.o: src/controllers/%.c
-	$(CC) $(CFLAGS) $(MYSQL_INCLUDE) -c $< -o $@
-
-src/utils/%.o: src/utils/%.c
-	$(CC) $(CFLAGS) $(MYSQL_INCLUDE) -c $< -o $@
-
-src/%.o: src/%.c
-	$(CC) $(CFLAGS) $(MYSQL_INCLUDE) -c $< -o $@
 
 clean:
 	@if exist $(EXEC) del /F $(EXEC)
