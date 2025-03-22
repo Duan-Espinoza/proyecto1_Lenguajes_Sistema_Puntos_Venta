@@ -1,9 +1,11 @@
-#include "database.h"
+#include "../models/database.h"
 #include <stdio.h>
 /**
  * Función que conecta a la base de datos 'sistema_ventas' en MySQL.
  * Para compilar este programa, se debe tener instalado el paquete de desarrollo de MySQL.
  */
+
+
 MYSQL* conectar_db() {
     MYSQL* conn = mysql_init(NULL);
     if (!mysql_real_connect(conn, "localhost", "root", "26e$pinozaolivare$92000", 
