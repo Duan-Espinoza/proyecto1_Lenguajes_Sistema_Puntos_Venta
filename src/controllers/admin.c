@@ -1,6 +1,7 @@
 #include "../models/admin.h"
 #include "../models/productos.h"
 #include "../models/database.h"
+#include "../models/ventas.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
