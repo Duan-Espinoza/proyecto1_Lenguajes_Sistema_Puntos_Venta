@@ -37,7 +37,8 @@ int autenticar_admin(MYSQL* conn) {
     return num_rows > 0;
 }
 
-// Registro de familias
+/** 
+//Registro de familias
 void registrar_familia(MYSQL* conn) {
     char descripcion[50];
     printf("\n--- REGISTRAR FAMILIA ---\n");
@@ -54,6 +55,11 @@ void registrar_familia(MYSQL* conn) {
     }
 }
 
+*/
+
+
+
+/**
 // Registro de productos
 void registrar_producto(MYSQL* conn) {
     char nombre[50];
@@ -87,6 +93,9 @@ void registrar_producto(MYSQL* conn) {
     }
 }
 
+*/
+
+/** 
 // Carga de inventario
 void cargar_inventario(MYSQL* conn) {
     char ruta[200];
@@ -121,6 +130,9 @@ void cargar_inventario(MYSQL* conn) {
     fclose(archivo);
     printf("\nResultado: %d exitosas, %d errores\n", exitos, errores);
 }
+
+
+*/
 
 // Menú administrativo
 void menu_administrativo(MYSQL* conn) {
