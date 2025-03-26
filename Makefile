@@ -1,12 +1,12 @@
 CC = gcc
-CFLAGS = -I"src/models" -I"src/controllers" -I"src/utils"
+CFLAGS = -I"src/models" -I"C:/Program Files/MySQL/MySQL Server 8.0/include"
 LDFLAGS = -L"C:/Program Files/MySQL/MySQL Server 8.0/lib" -lmysql
-MYSQL_INCLUDE = -I"C:/Program Files/MySQL/MySQL Server 8.0/include"
 
 SRC = src/main.c \
       src/controllers/admin.c \
+      src/controllers/database.c \
       src/controllers/productos.c \
-      src/models/database.c \
+	  src/controllers/ventas.c \
       src/utils/file_manager.c
 
 OBJ = $(SRC:.c=.o)
@@ -15,22 +15,15 @@ EXEC = sistema_ventas.exe
 all: $(EXEC)
 
 $(EXEC): $(OBJ)
-	$(CC) $(CFLAGS) $(MYSQL_INCLUDE) $(OBJ) -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-# Reglas para compilar archivos .c a .o en subdirectorios
-src/%.o: src/%.c
-	$(CC) $(CFLAGS) $(MYSQL_INCLUDE) -c $< -o $@
-
-src/controllers/%.o: src/controllers/%.c
-	$(CC) $(CFLAGS) $(MYSQL_INCLUDE) -c $< -o $@
-
-src/models/%.o: src/models/%.c
-	$(CC) $(CFLAGS) $(MYSQL_INCLUDE) -c $< -o $@
-
-src/utils/%.o: src/utils/%.c
-	$(CC) $(CFLAGS) $(MYSQL_INCLUDE) -c $< -o $@
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	cmd /c del /Q /F $(subst /,\,$(OBJ)) $(EXEC)
+	@if exist $(EXEC) del /F /Q $(EXEC)
+	@if exist src\*.o del /F /Q src\*.o
+	@if exist src\controllers\*.o del /F /Q src\controllers\*.o
+	@if exist src\utils\*.o del /F /Q src\utils\*.o
 
 .PHONY: all clean
