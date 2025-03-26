@@ -1,0 +1,3 @@
+Prod1,Atún,Enlatados,500.3,655.4,45
+Prod2,Arroz,Granos básicos,500.3,655.4,45
+Prod3,Leche Entera,Lácteos,800.0,999.9,30

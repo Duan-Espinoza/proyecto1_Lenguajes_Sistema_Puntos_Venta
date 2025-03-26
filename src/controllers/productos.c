@@ -86,39 +86,192 @@ void registrar_familia(MYSQL* conn) {
     printf("\n- Total líneas: %d\n", lineas_procesadas + lineas_erroneas);
 }
 
-// Implementación de registro de productos
-void registrar_producto(MYSQL* conn) {
-    char nombre[50];
-    int familia_id;
-    float costo, precio;
-    int stock;
+//
+// Función auxiliar para verificar existencia de familia
+int familia_existe(MYSQL* conn, const char* nombre_familia) {
+    char query[100];
+    sprintf(query, "SELECT id_familia FROM familias WHERE descripcion = '%s'", nombre_familia);
+    
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Error de verificación: %s\n", mysql_error(conn));
+        return 0;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    int existe = mysql_num_rows(result) > 0;
+    mysql_free_result(result);
+    return existe;
+}
 
-    printf("\n--- REGISTRAR PRODUCTO ---\n");
-    printf("Nombre: ");
-    scanf(" %49[^\n]", nombre);
-    printf("ID Familia: ");
-    if(scanf("%d", &familia_id) != 1) {
-        printf("Error: ID de familia inválido\n");
-        while(getchar() != '\n');  // Limpiar buffer
+// Función temporal para simular verificación de uso en cotizaciones
+int producto_tiene_transacciones(MYSQL* conn, const char* id_producto) {
+    // Implementación temporal - siempre retorna falso por ahora
+    return 0;
+}
+
+
+void registrar_productos_desde_archivo(MYSQL* conn) {
+    char ruta_archivo[200];
+    printf("\n--- REGISTRO MASIVO DE PRODUCTOS ---\n");
+    printf("Ingrese la ruta del archivo (.txt): ");
+    scanf(" %199[^\n]", ruta_archivo);
+
+    FILE* archivo = fopen(ruta_archivo, "r");
+    if (!archivo) {
+        perror("Error al abrir el archivo");
         return;
     }
-    printf("Costo: ");
-    scanf("%f", &costo);
-    printf("Precio: ");
-    scanf("%f", &precio);
-    printf("Stock: ");
-    scanf("%d", &stock);
 
-    char query[300];
-    sprintf(query, 
-        "INSERT INTO productos (nombre, familia_id, costo, precio, stock) "
-        "VALUES ('%s', %d, %.2f, %.2f, %d)",
-        nombre, familia_id, costo, precio, stock
-    );
+    char linea[256];
+    int exitos = 0, errores = 0;
+    int duplicados = 0, familias_invalidas = 0, formatos_invalidos = 0;
 
-    if (mysql_query(conn, query)) {
-        fprintf(stderr, "Error: %s\n", mysql_error(conn));
-    } else {
-        printf("¡Producto '%s' registrado!\n", nombre);
+    printf("\nProcesando archivo...\n");
+    
+    while (fgets(linea, sizeof(linea), archivo)) {
+        // Limpiar y validar línea
+        linea[strcspn(linea, "\n")] = '\0';
+        if (strlen(linea) == 0 || linea[0] == '#') continue;
+
+        // Variables para almacenar los datos
+        char id_producto[20], nombre[50], familia[50];
+        float costo, precio;
+        int stock;
+
+        // Parsear línea
+        if (sscanf(linea, "%19[^,],%49[^,],%49[^,],%f,%f,%d", 
+                  id_producto, nombre, familia, &costo, &precio, &stock) != 6) {
+            printf("Error formato: %s\n", linea);
+            formatos_invalidos++;
+            errores++;
+            continue;
+        }
+
+        // Validar ID único
+        char query_verificar_id[100];
+        sprintf(query_verificar_id, "SELECT id_producto FROM productos WHERE id_producto = '%s'", id_producto);
+        
+        if (mysql_query(conn, query_verificar_id)) {
+            fprintf(stderr, "Error verificación ID: %s\n", mysql_error(conn));
+            errores++;
+            continue;
+        }
+
+        MYSQL_RES* resultado_id = mysql_store_result(conn);
+        if (mysql_num_rows(resultado_id) > 0) {
+            printf("ID duplicado: %s\n", id_producto);
+            duplicados++;
+            errores++;
+            mysql_free_result(resultado_id);
+            continue;
+        }
+        mysql_free_result(resultado_id);
+
+        // Validar existencia de familia
+        if (!familia_existe(conn, familia)) {
+            printf("Familia inexistente: %s\n", familia);
+            familias_invalidas++;
+            errores++;
+            continue;
+        }
+
+        // Insertar en BD
+        char query[500];
+        sprintf(query, 
+            "INSERT INTO productos (id_producto, nombre, familia_id, costo, precio, stock) "
+            "SELECT '%s', '%s', id_familia, %.2f, %.2f, %d "
+            "FROM familias WHERE descripcion = '%s'",
+            id_producto, nombre, costo, precio, stock, familia
+        );
+
+        if (mysql_query(conn, query)) {
+            fprintf(stderr, "Error inserción: %s\n", mysql_error(conn));
+            errores++;
+        } else {
+            printf("Registrado: %s - %s\n", id_producto, nombre);
+            exitos++;
+        }
     }
+
+    fclose(archivo);
+    
+    // Reporte final
+    printf("\nResultado:");
+    printf("\n- Líneas procesadas: %d", exitos);
+    printf("\n- Errores (%d total):", errores);
+    printf("\n  * Formato inválido: %d", formatos_invalidos);
+    printf("\n  * IDs duplicados: %d", duplicados);
+    printf("\n  * Familias inválidas: %d", familias_invalidas);
+    printf("\n- Total líneas: %d\n", exitos + errores);
+}
+
+
+//
+void eliminar_producto_manual(MYSQL* conn) {
+    char id_producto[20];
+    printf("\n--- ELIMINAR PRODUCTO ---\n");
+    printf("Ingrese el ID del producto: ");
+    scanf(" %19s", id_producto);
+
+    // Validar existencia
+    char query_verificar[100];
+    sprintf(query_verificar, "SELECT id_producto FROM productos WHERE id_producto = '%s'", id_producto);
+    
+    if (mysql_query(conn, query_verificar)) {
+        fprintf(stderr, "Error de verificación: %s\n", mysql_error(conn));
+        return;
+    }
+
+    MYSQL_RES* resultado = mysql_store_result(conn);
+    if (mysql_num_rows(resultado) == 0) {
+        printf("Producto no encontrado\n");
+        mysql_free_result(resultado);
+        return;
+    }
+    mysql_free_result(resultado);
+
+    // Validar uso en transacciones (implementación temporal)
+    if (producto_tiene_transacciones(conn, id_producto)) {
+        printf("No se puede eliminar: El producto tiene transacciones asociadas\n");
+        return;
+    }
+
+    // Ejecutar eliminación
+    char query_eliminar[100];
+    sprintf(query_eliminar, "DELETE FROM productos WHERE id_producto = '%s'", id_producto);
+    
+    if (mysql_query(conn, query_eliminar)) {
+        fprintf(stderr, "Error eliminación: %s\n", mysql_error(conn));
+    } else {
+        printf("Producto %s eliminado exitosamente\n", id_producto);
+    }
+}
+
+
+
+// Implementación de gestion de productos
+void menu_gestion_productos(MYSQL* conn) {
+    int opcion;
+    do {
+        printf("\n=== GESTIÓN DE PRODUCTOS ===");
+        printf("\n1. Registrar productos desde archivo");
+        printf("\n2. Eliminar producto manualmente");
+        printf("\n3. Volver al menú administrativo");
+        printf("\nSeleccione: ");
+        scanf("%d", &opcion);
+
+        switch(opcion) {
+            case 1: 
+                registrar_productos_desde_archivo(conn);
+                break;
+            case 2: 
+                eliminar_producto_manual(conn);
+                break;
+            case 3: 
+                printf("\nVolviendo...\n");
+                break;
+            default: 
+                printf("\n¡Opción inválida!\n");
+        }
+    } while(opcion != 3);
 }

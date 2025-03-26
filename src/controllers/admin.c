@@ -141,7 +141,7 @@ void menu_administrativo(MYSQL* conn) {
     do {
         printf("\n=== MENÚ ADMINISTRATIVO ===\n");
         printf("1. Registrar familia\n");
-        printf("2. Registrar producto\n");
+        printf("2. Gestión de productos\n");
         printf("3. Cargar inventario\n");
         printf("4. Volver\n");
         printf("Opción: ");
@@ -149,7 +149,7 @@ void menu_administrativo(MYSQL* conn) {
 
         switch(opcion) {
             case 1: registrar_familia(conn); break;
-            case 2: registrar_producto(conn); break;
+            case 2: menu_gestion_productos(conn); break;
             case 3: cargar_inventario(conn); break;
             case 4: printf("Volviendo...\n"); break;
             default: printf("Opción inválida\n");
