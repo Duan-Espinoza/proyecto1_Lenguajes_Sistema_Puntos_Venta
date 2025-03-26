@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+
 #include "models/database.h"
 #include "models/admin.h"
 #include <stdio.h>
@@ -8,6 +9,7 @@
 void menu_principal() {
     printf("\n=== SISTEMA DE PUNTO DE VENTA ===\n");
     printf("1. Acceso administrativo\n");
+
     printf("2. Opciones Generales\n");
     printf("3. Salir\n");
     printf("Seleccione: ");
@@ -15,6 +17,7 @@ void menu_principal() {
 
 int main() {
     MYSQL* conn = conectar_db();
+
     int opcion;
 
     do {
@@ -38,8 +41,9 @@ int main() {
             default:
                 printf("Opción no válida\n");
         }
+
     } while(opcion != 3);
 
     desconectar_db(conn);
-    return 0;
+    }
 }
