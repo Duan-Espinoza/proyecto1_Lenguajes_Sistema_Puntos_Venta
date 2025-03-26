@@ -6,6 +6,7 @@ SRC = src/main.c \
       src/controllers/admin.c \
       src/controllers/database.c \
       src/controllers/productos.c \
+	  src/controllers/ventas.c \
       src/utils/file_manager.c
 
 OBJ = $(SRC:.c=.o)
