@@ -11,7 +11,7 @@ void mostrarMenuPrincipal() {
     printf("3. Salir\n");
 }
 
-void menuOpcionesGenerales() {
+void menuOpcionesGenerales(MYSQL* conn) {
     int opcion;
     while (1) {
         printf("\n--- Opciones Generales ---\n");
@@ -26,7 +26,7 @@ void menuOpcionesGenerales() {
 
         switch (opcion) {
             case 1:
-                consultarCatalogoProductos();               
+                consultarCatalogoProductos(conn);       
                 break;
             case 2:
                 // cotizarProductos();
@@ -68,7 +68,7 @@ int main() {
                 menuOpcionesAdministrativas(conn);
                 break;
             case 2:
-                menuOpcionesGenerales();
+                menuOpcionesGenerales(conn);
                 break;
             case 3:
                 printf("Saliendo del sistema...\n");
