@@ -14,4 +14,8 @@ void registrar_producto(MYSQL* conn);
 // Inventario
 void cargar_inventario(MYSQL* conn);
 
+//Catalogo
+void consultarCatalogoProductos(MYSQL* conn);
+
+
 #endif
