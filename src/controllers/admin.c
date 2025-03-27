@@ -156,3 +156,47 @@ void menu_administrativo(MYSQL* conn) {
         }
     } while(opcion != 4);
 }
+
+//Muestra una lista de todos los productos que vende el local comercial. Por cada uno debe mostrar 
+//lo siguiente: identificador, nombre, descripción, precio sin impuestos y cantidad en stock. Se debe 
+//poder filtrar la información por nombre familia de producto opcionalmente. 
+
+void consultarCatalogoProductos(MYSQL* conn) {
+
+    MYSQL_RES* result;
+    MYSQL_ROW row;
+    char query[200];
+
+    printf("\n--- CONSULTAR CATÁLOGO DE PRODUCTOS ---\n");
+    printf("Filtrar por familia (deje en blanco para mostrar todos): ");
+    char familia[50];
+    scanf(" %49[^\n]", familia);
+
+    if (strlen(familia) > 0) {
+        sprintf(query, "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos WHERE familia_id = %s", familia);
+        
+    } else {
+        sprintf(query, 
+            "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos"
+        );
+    }
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Error en la consulta: %s\n", mysql_error(conn));
+        return;
+    }
+    result = mysql_store_result(conn);
+    if (!result) {
+        fprintf(stderr, "Error al obtener resultados: %s\n", mysql_error(conn));
+        return;
+    }
+
+    printf("\n");
+    printf("%-5s | %-20s | %-20s | %-10s | %-5s\n", "ID", "Nombre", "Familia", "Precio", "Stock");
+    printf("------------------------------------------------------------\n");
+
+    while ((row = mysql_fetch_row(result))) {
+        printf("%-5s | %-20s | %-20s | %-10s | %-5s\n", row[0], row[1], row[2], row[3], row[4]);
+    }
+    mysql_free_result(result);
+}

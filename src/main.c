@@ -26,7 +26,7 @@ void menuOpcionesGenerales() {
 
         switch (opcion) {
             case 1:
-                // consultarCatalogoProductos();
+                consultarCatalogoProductos();               
                 break;
             case 2:
                 // cotizarProductos();
