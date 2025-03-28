@@ -157,46 +157,97 @@ void menu_administrativo(MYSQL* conn) {
     } while(opcion != 4);
 }
 
-//Muestra una lista de todos los productos que vende el local comercial. Por cada uno debe mostrar 
-//lo siguiente: identificador, nombre, descripción, precio sin impuestos y cantidad en stock. Se debe 
-//poder filtrar la información por nombre familia de producto opcionalmente. 
+
+void limpiarBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+int existeFamilia(MYSQL* conn, const char* familia) {
+    char query[200];
+    snprintf(query, sizeof(query), "SELECT COUNT(*) FROM familias WHERE id_familia = '%s'", familia);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Error en la validación de la familia: %s\n", mysql_error(conn));
+        return 0;
+    }
+
+    MYSQL_RES* result = mysql_store_result(conn);
+    if (!result) {
+        fprintf(stderr, "Error al obtener resultados: %s\n", mysql_error(conn));
+        return 0;
+    }
+
+    MYSQL_ROW row = mysql_fetch_row(result);
+    int existe = row ? atoi(row[0]) : 0;
+
+    mysql_free_result(result);
+    return existe;
+}
 
 void consultarCatalogoProductos(MYSQL* conn) {
-
     MYSQL_RES* result;
     MYSQL_ROW row;
-    char query[200];
+    char query[300];
+    char familia[50];
+    char familiaEscapada[100];
 
     printf("\n--- CONSULTAR CATÁLOGO DE PRODUCTOS ---\n");
     printf("Filtrar por familia (deje en blanco para mostrar todos): ");
-    char familia[50];
-    scanf(" %49[^\n]", familia);
+
+    if (fgets(familia, sizeof(familia), stdin) == NULL) {
+        fprintf(stderr, "Error al leer la entrada.\n");
+        return;
+    }
+
+    familia[strcspn(familia, "\n")] = 0;
+
+    if (strlen(familia) >= sizeof(familia) - 1) {
+        printf("Error: La entrada es demasiado larga.\n");
+        limpiarBuffer();
+        return;
+    }
 
     if (strlen(familia) > 0) {
-        sprintf(query, "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos WHERE familia_id = %s", familia);
-        
+        mysql_real_escape_string(conn, familiaEscapada, familia, strlen(familia));
+
+        if (!existeFamilia(conn, familiaEscapada)) {
+            printf("\nError: La familia ingresada no existe.\n");
+            return;
+        }
+
+        snprintf(query, sizeof(query),
+                 "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos WHERE familia_id = '%s'",
+                 familiaEscapada);
     } else {
-        sprintf(query, 
-            "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos"
-        );
+        snprintf(query, sizeof(query),
+                 "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos");
     }
 
     if (mysql_query(conn, query)) {
         fprintf(stderr, "Error en la consulta: %s\n", mysql_error(conn));
         return;
     }
+
     result = mysql_store_result(conn);
     if (!result) {
         fprintf(stderr, "Error al obtener resultados: %s\n", mysql_error(conn));
         return;
     }
 
-    printf("\n");
-    printf("%-5s | %-20s | %-20s | %-10s | %-5s\n", "ID", "Nombre", "Familia", "Precio", "Stock");
-    printf("------------------------------------------------------------\n");
+    int num_rows = mysql_num_rows(result);
+    if (num_rows == 0) {
+        printf("\nNo se encontraron productos en esta familia.\n");
+        mysql_free_result(result);
+        return;
+    }
+
+    printf("\n%-5s | %-20s | %-20s | %-10s | %-5s\n", "ID", "Nombre", "Familia", "Precio", "Stock");
+    printf("--------------------------------------------------------------------------------------\n");
 
     while ((row = mysql_fetch_row(result))) {
         printf("%-5s | %-20s | %-20s | %-10s | %-5s\n", row[0], row[1], row[2], row[3], row[4]);
     }
+    
     mysql_free_result(result);
 }
