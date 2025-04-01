@@ -20,7 +20,7 @@ void menu_principal() {
  * Función que muestra el menú de opciones generales.
  * Permite al usuario consultar catálogo de productos, cotizar productos, modificar cotización o facturar venta.
  */
-void menuOpcionesGenerales() {
+void menuOpcionesGenerales(MYSQL* conn) {
     int opcion;
     while (1) {
         printf("\n--- Opciones Generales ---\n");
@@ -76,7 +76,7 @@ int main() {
                 }
                 break;
             case 2:
-                menuOpcionesGenerales();
+                menuOpcionesGenerales(conn);
                 break;
             case 3:
                 printf("Saliendo del sistema...\n");
