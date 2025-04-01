@@ -1,18 +1,25 @@
+#include <stdlib.h>
+#include <string.h>
 #include "models/database.h"
 #include "models/admin.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-void mostrarMenuPrincipal() {
-    printf("\n--- Sistema de Punto de Venta ---\n");
-    printf("1. Opciones Administrativas\n");
+/**
+ * Función que muestra el menú principal del sistema de punto de venta.
+ * Permite al usuario seleccionar entre acceso administrativo, opciones generales o salir.
+ */
+void menu_principal() {
+    printf("\n=== SISTEMA DE PUNTO DE VENTA ===\n");
+    printf("1. Acceso administrativo\n");
     printf("2. Opciones Generales\n");
     printf("3. Salir\n");
     printf("Seleccione: ");
 }
 
-
+/**
+ * Función que muestra el menú de opciones generales.
+ * Permite al usuario consultar catálogo de productos, cotizar productos, modificar cotización o facturar venta.
+ */
 void menuOpcionesGenerales() {
     int opcion;
     while (1) {
@@ -48,30 +55,37 @@ void menuOpcionesGenerales() {
 }
 
 
-
+/**
+ * Función principal del programa.
+ * Conecta a la base de datos, muestra el menú principal y gestiona las opciones seleccionadas por el usuario.
+ */
 int main() {
     MYSQL* conn = conectar_db();
     int opcion;
 
-    while (1) {
-        mostrarMenuPrincipal();
-        printf("Seleccione una opción: ");
+    do {
+        menu_principal();
         scanf("%d", &opcion);
-        getchar();
 
-        switch (opcion) {
+        switch(opcion) {
             case 1:
-                menuOpcionesAdministrativas(conn);
+                if(autenticar_admin(conn)) {
+                    menu_administrativo(conn);
+                } else {
+                    printf("\n¡Credenciales incorrectas!\n");
+                }
                 break;
             case 2:
-                menuOpcionesGenerales(conn);
+                menuOpcionesGenerales();
                 break;
             case 3:
                 printf("Saliendo del sistema...\n");
-                desconectar_db(conn);
-                return 0;
+                break;
             default:
-                printf("Opción inválida\n");
+                printf("Opción no válida\n");
         }
-    }
+    } while(opcion != 3);
+
+    desconectar_db(conn);
+    return 0;
 }
