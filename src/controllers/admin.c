@@ -223,6 +223,8 @@ void consultarCatalogoProductos(MYSQL* conn) {
 
     printf("\n--- CONSULTAR CATÁLOGO DE PRODUCTOS ---\n");
     printf("Filtrar por familia (deje en blanco para mostrar todos): ");
+    //Opción de entrada para familia
+    scanf("%d", &familia);
 
     if (fgets(familia, sizeof(familia), stdin) == NULL) {
         fprintf(stderr, "Error al leer la entrada.\n");

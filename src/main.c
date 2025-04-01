@@ -20,9 +20,10 @@ void menu_principal() {
  * Función que muestra el menú de opciones generales.
  * Permite al usuario consultar catálogo de productos, cotizar productos, modificar cotización o facturar venta.
  */
+
 void menuOpcionesGenerales(MYSQL* conn) {
     int opcion;
-    while (1) {
+    do {
         printf("\n--- Opciones Generales ---\n");
         printf("1. Consultar Catálogo de Productos\n");
         printf("2. Cotizar Productos\n");
@@ -31,28 +32,33 @@ void menuOpcionesGenerales(MYSQL* conn) {
         printf("5. Volver al menú principal\n");
         printf("Seleccione una opción: ");
         scanf("%d", &opcion);
-        getchar(); 
 
-        switch (opcion) {
+        switch(opcion) {
             case 1:
-               // consultarCatalogoProductos();
+                consultarCatalogoProductos(conn);
                 break;
             case 2:
                 //cotizarProductos();
+                printf("\n¡Funcionalidad sin implementar!\n");
                 break;
             case 3:
                 //modificarCotizacion();
+                printf("\n¡Funcionalidad sin implementar!\n");
                 break;
             case 4:
                 //facturarVenta();
+                printf("\n¡Funcionalidad sin implementar!\n");
                 break;
             case 5:
                 return;
             default:
                 printf("Opción inválida\n");
+        
         }
-    }
+    } while(opcion != 5);
 }
+
+
 
 
 /**
