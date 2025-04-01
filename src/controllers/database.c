@@ -5,7 +5,6 @@
  * Para compilar este programa, se debe tener instalado el paquete de desarrollo de MySQL.
  */
 
-
 MYSQL* conectar_db() {
     MYSQL* conn = mysql_init(NULL);
     if (!mysql_real_connect(conn, "localhost", "root", "Geovanny-11", 
@@ -17,6 +16,13 @@ MYSQL* conectar_db() {
     return conn;
 }
 
+
+/*
+Nombre: desconectar_db
+Descripción: Desconecta de la base de datos MySQL.
+Entrada: Objeto MYSQL* conn
+Salida: Ninguna
+*/
 void desconectar_db(MYSQL* conn) {
     mysql_close(conn);
 }
