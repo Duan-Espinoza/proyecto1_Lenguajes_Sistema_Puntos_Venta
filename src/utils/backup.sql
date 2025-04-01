@@ -178,7 +178,7 @@ CREATE TABLE `productos` (
 
 LOCK TABLES `productos` WRITE;
 /*!40000 ALTER TABLE `productos` DISABLE KEYS */;
-INSERT INTO `productos` VALUES ('Prod1','Atún','Fam1',500.30,655.40,45),('Prod2','Arroz','Fam2',500.30,655.40,45);
+INSERT INTO `productos` VALUES ('Prod1','Atún','Fam1',500.30,655.40,105),('Prod2','Arroz','Fam2',500.30,655.40,33),('Prod3','Leche Entera','Fam3',800.00,999.90,30);
 /*!40000 ALTER TABLE `productos` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -191,4 +191,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-03-27 21:52:08
+-- Dump completed on 2025-04-01  8:29:24
