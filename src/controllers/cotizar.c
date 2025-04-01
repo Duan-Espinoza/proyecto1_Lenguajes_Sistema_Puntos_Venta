@@ -180,7 +180,8 @@ void agregar_detalle(Cotizacion *cotizacion, MYSQL* conn) {
     mysql_stmt_bind_param(stmt_stock, &param_stock);
     
     mysql_stmt_execute(stmt_stock);
-    MYSQL_RES *result = mysql_stmt_result_metadata(stmt_stock);
+    //MYSQL_RES *result = mysql_stmt_result_metadata(stmt_stock);
+    result = mysql_stmt_result_metadata(stmt_stock);
     if(result) {
         MYSQL_ROW row = mysql_fetch_row(result);
         if(row) {
