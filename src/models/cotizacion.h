@@ -26,8 +26,10 @@ typedef struct {
 
 // Prototipos de funciones
 Cotizacion* nueva_cotizacion();
+void menu_cotizacion(MYSQL* conn);
 void agregar_detalle(Cotizacion *cotizacion, MYSQL* conn);
-void mostrar_cotizacion(Cotizacion *cotizacion);
 bool guardar_cotizacion(MYSQL* conn, Cotizacion *cotizacion);
+void mostrar_cotizacion(Cotizacion *cotizacion);
+void eliminar_detalle(Cotizacion *cotizacion);
 
 #endif
