@@ -223,21 +223,18 @@ void consultarCatalogoProductos(MYSQL* conn) {
 
     printf("\n--- CONSULTAR CATÁLOGO DE PRODUCTOS ---\n");
     printf("Filtrar por familia (deje en blanco para mostrar todos): ");
-    //Opción de entrada para familia
-    scanf("%d", &familia);
+
+    // Limpiar el buffer antes de leer la entrada
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
 
     if (fgets(familia, sizeof(familia), stdin) == NULL) {
         fprintf(stderr, "Error al leer la entrada.\n");
         return;
     }
 
-    familia[strcspn(familia, "\n")] = 0;
-
-    if (strlen(familia) >= sizeof(familia) - 1) {
-        printf("Error: La entrada es demasiado larga.\n");
-        limpiarBuffer();
-        return;
-    }
+    // Eliminar el salto de línea si existe
+    familia[strcspn(familia, "\n")] = '\0';
 
     if (strlen(familia) > 0) {
         mysql_real_escape_string(conn, familiaEscapada, familia, strlen(familia));
@@ -268,17 +265,18 @@ void consultarCatalogoProductos(MYSQL* conn) {
 
     int num_rows = mysql_num_rows(result);
     if (num_rows == 0) {
-        printf("\nNo se encontraron productos en esta familia.\n");
+        printf("\nNo se encontraron productos.\n");
         mysql_free_result(result);
         return;
     }
 
-    printf("\n%-5s | %-20s | %-20s | %-10s | %-5s\n", "ID", "Nombre", "Familia", "Precio", "Stock");
-    printf("--------------------------------------------------------------------------------------\n");
+    printf("\n%-5s | %-20s | %-10s | %-10s | %-5s\n", "ID", "Nombre", "Familia", "Precio", "Stock");
+    printf("-------------------------------------------------------------\n");
 
     while ((row = mysql_fetch_row(result))) {
-        printf("%-5s | %-20s | %-20s | %-10s | %-5s\n", row[0], row[1], row[2], row[3], row[4]);
+        printf("%-5s | %-20s | %-10s | %-10s | %-5s\n",
+               row[0], row[1], row[2], row[4], row[5]);  // Ajuste en índices para evitar errores
     }
-    
+
     mysql_free_result(result);
 }
