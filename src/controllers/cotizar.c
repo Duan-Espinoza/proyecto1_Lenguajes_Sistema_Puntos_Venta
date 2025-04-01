@@ -98,7 +98,53 @@ void agregar_detalle(Cotizacion *cotizacion, MYSQL* conn) {
     
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
     mysql_stmt_prepare(stmt, query, strlen(query));
-    
+    //
+    // Ejecuta la consulta para obtener el catálogo
+    mysql_stmt_execute(stmt);
+
+    // Preparar para recibir los resultados
+    MYSQL_RES *result = mysql_stmt_result_metadata(stmt);
+    if(result) {
+        printf("\n=== PRODUCTOS DISPONIBLES ===\n");
+        printf("%-5s %-20s %-15s %-10s\n", "ID", "Nombre", "Familia", "Precio");
+
+        // Definir buffers para los resultados
+        MYSQL_BIND bind[5];
+        memset(bind, 0, sizeof(bind));
+        char id[20], nombre[50], familia[50];
+        double precio;
+        int stock;  // Opcional si deseas mostrar stock
+
+        // Configurar cada bind
+        bind[0].buffer_type = MYSQL_TYPE_STRING;
+        bind[0].buffer = id;
+        bind[0].buffer_length = sizeof(id);
+
+        bind[1].buffer_type = MYSQL_TYPE_STRING;
+        bind[1].buffer = nombre;
+        bind[1].buffer_length = sizeof(nombre);
+
+        bind[2].buffer_type = MYSQL_TYPE_STRING;
+        bind[2].buffer = familia;
+        bind[2].buffer_length = sizeof(familia);
+
+        bind[3].buffer_type = MYSQL_TYPE_DOUBLE;
+        bind[3].buffer = &precio;
+
+        bind[4].buffer_type = MYSQL_TYPE_LONG;
+        bind[4].buffer = &stock;
+
+        mysql_stmt_bind_result(stmt, bind);
+
+        // Recorrer los resultados e imprimirlos
+        while(mysql_stmt_fetch(stmt) == 0) {
+            printf("%-5s %-20s %-15s $%-9.2f\n", id, nombre, familia, precio);
+        }
+        mysql_free_result(result);
+    }
+
+    //
+
     // Vincular parámetro de familia si se proporcionó
     if(strlen(familia) > 0) {
         MYSQL_BIND param = {0};
@@ -275,3 +321,35 @@ void mostrar_cotizacion(Cotizacion *cotizacion) {
     }
     printf("\nTotal: $%.2f\n", cotizacion->total);
 }
+
+void eliminar_detalle(Cotizacion *cotizacion) {
+    int num_linea;
+    printf("Número de línea a eliminar: ");
+    scanf("%d", &num_linea);
+
+    DetalleCotizacion *actual = cotizacion->detalles;
+    DetalleCotizacion *anterior = NULL;
+    int contador = 1;
+
+    while(actual != NULL && contador != num_linea) {
+        anterior = actual;
+        actual = actual->siguiente;
+        contador++;
+    }
+
+    if(actual == NULL) {
+        printf("Línea no encontrada\n");
+        return;
+    }
+
+    if(anterior == NULL) {
+        // Si se elimina el primer elemento
+        cotizacion->detalles = actual->siguiente;
+    } else {
+        anterior->siguiente = actual->siguiente;
+    }
+
+    free(actual);
+    printf("Línea eliminada\n");
+}
+
