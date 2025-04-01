@@ -8,349 +8,457 @@
 
 
 /**
- * @brief Crea una nueva cotización y la inicializa.
- * @return Puntero a la nueva cotización creada.
+ * @brief Crea e inicializa una nueva cotización
  */
 Cotizacion* nueva_cotizacion() {
-    // Asigna memoria para la nueva cotización
-    Cotizacion *cotizacion = malloc(sizeof(Cotizacion));
-    if(cotizacion == NULL) {
-        fprintf(stderr, "Error al asignar memoria para la cotización\n");
-        exit(1);
+    Cotizacion *cot = malloc(sizeof(Cotizacion));
+    if(!cot) {
+        fprintf(stderr, "Error asignando memoria\n");
+        exit(EXIT_FAILURE);
     }
     
-    // Inicializa los campos de la estructura
-    cotizacion->id = 0;  // Se asigna 0 o el valor que consideres predeterminado
-    strcpy(cotizacion->numero_cotizacion, ""); // Inicialmente vacío, se llenará al guardar
-    strcpy(cotizacion->fecha, "");             // Se puede asignar la fecha al momento de guardar
-    strcpy(cotizacion->estado, "PENDIENTE");     // Estado inicial
-    strcpy(cotizacion->cliente, "");           // El cliente se asignará luego, según entrada del usuario
-    cotizacion->subtotal = 0.0;                // Inicialmente sin subtotal
-    cotizacion->total = 0.0;                   // Inicialmente sin total
-    cotizacion->detalles = NULL;               // La lista de detalles está vacía al comienzo
-
-    return cotizacion;
+    cot->id_cotizacion  = 0;
+    strcpy(cot->numero_cotizacion, "");
+    strcpy(cot->fecha, "");
+    strcpy(cot->estado, "PENDIENTE");
+    strcpy(cot->cliente, "");
+    cot->subtotal = 0.0;
+    cot->total = 0.0;
+    cot->detalles = NULL;
+    
+    return cot;
 }
 
 
 
 /**
- * @brief Muestra el menú de cotización y permite al usuario interactuar con él.
- * @param conn Conexión a la base de datos MySQL.
+ * @brief Menú principal de cotización
  */
 void menu_cotizacion(MYSQL* conn) {
-    Cotizacion *cotizacion_actual = nueva_cotizacion();
-    int opcion;
+    Cotizacion *cot = nueva_cotizacion();
     
+    printf("\nIngrese nombre del cliente: ");
+    scanf(" %49[^\n]", cot->cliente);
+    
+    int opcion;
     do {
-        printf("\n=== MENÚ DE COTIZACIÓN ===\n");
+        printf("\n=== MENÚ COTIZACIÓN ===\n");
         printf("1. Agregar producto\n");
         printf("2. Eliminar producto\n");
-        printf("3. Ver cotización actual\n");
-        printf("4. Guardar cotización\n");
+        printf("3. Ver cotización\n");
+        printf("4. Guardar y salir\n");
         printf("5. Salir sin guardar\n");
         printf("Seleccione: ");
         scanf("%d", &opcion);
 
         switch(opcion) {
-            case 1: 
-                agregar_detalle(cotizacion_actual, conn); 
-                break;
-            case 2: 
-                // Aún por implementar: función eliminar_detalle(cotizacion_actual);
-                printf("Funcionalidad de eliminar producto por implementar.\n");
-                break;
-            case 3: 
-                mostrar_cotizacion(cotizacion_actual); 
-                break;
+            case 1: agregar_detalle(cot, conn); break;
+            case 2: eliminar_detalle(cot); break;
+            case 3: mostrar_cotizacion(cot); break;
             case 4: 
-                if (guardar_cotizacion(conn, cotizacion_actual)) {
-                    printf("Cotización guardada exitosamente.\n");
-                } else {
-                    printf("Error al guardar la cotización.\n");
+                if(guardar_cotizacion(conn, cot)) {
+                    printf("Cotización %s guardada!\n", cot->numero_cotizacion);
                 }
+                free(cot);
                 return;
-            case 5: 
-                free(cotizacion_actual);
+            case 5:
+                free(cot);
                 return;
-            default: 
-                printf("Opción inválida\n");
+            default: printf("Opción inválida\n");
         }
     } while(1);
 }
 
 /**
- * @brief Crea una nueva cotización y la inicializa.
- * @return Puntero a la nueva cotización creada.
+ * @brief Agrega un producto a la cotización
  */
-void agregar_detalle(Cotizacion *cotizacion, MYSQL* conn) {
-    // Paso 1: Mostrar catálogo filtrado
-    char familia[50] = "";
-    printf("\nFiltrar por familia (dejar vacío para todas): ");
+void agregar_detalle(Cotizacion *cot, MYSQL* conn) {
+    char familia[50] = {0};
+    printf("\nFiltrar por familia (vacío=todas): ");
     scanf(" %49[^\n]", familia);
     
-    char query[512];
-    snprintf(query, sizeof(query),
-        "SELECT p.id_producto, p.nombre, f.descripcion, p.precio, p.stock "
-        "FROM productos p "
-        "JOIN familias f ON p.familia_id = f.id_familia %s",
-        (strlen(familia) > 0 ? "WHERE f.descripcion = ?" : ""));
-    
-    MYSQL_STMT *stmt = mysql_stmt_init(conn);
-    mysql_stmt_prepare(stmt, query, strlen(query));
-    //
-    // Ejecuta la consulta para obtener el catálogo
-    mysql_stmt_execute(stmt);
+    mostrar_catalogo(conn, familia);
 
-    // Preparar para recibir los resultados
-    MYSQL_RES *result = mysql_stmt_result_metadata(stmt);
-    if(result) {
-        printf("\n=== PRODUCTOS DISPONIBLES ===\n");
-        printf("%-5s %-20s %-15s %-10s\n", "ID", "Nombre", "Familia", "Precio");
-
-        // Definir buffers para los resultados
-        MYSQL_BIND bind[5];
-        memset(bind, 0, sizeof(bind));
-        char id[20], nombre[50], familia[50];
-        double precio;
-        int stock;  // Opcional si deseas mostrar stock
-
-        // Configurar cada bind
-        bind[0].buffer_type = MYSQL_TYPE_STRING;
-        bind[0].buffer = id;
-        bind[0].buffer_length = sizeof(id);
-
-        bind[1].buffer_type = MYSQL_TYPE_STRING;
-        bind[1].buffer = nombre;
-        bind[1].buffer_length = sizeof(nombre);
-
-        bind[2].buffer_type = MYSQL_TYPE_STRING;
-        bind[2].buffer = familia;
-        bind[2].buffer_length = sizeof(familia);
-
-        bind[3].buffer_type = MYSQL_TYPE_DOUBLE;
-        bind[3].buffer = &precio;
-
-        bind[4].buffer_type = MYSQL_TYPE_LONG;
-        bind[4].buffer = &stock;
-
-        mysql_stmt_bind_result(stmt, bind);
-
-        // Recorrer los resultados e imprimirlos
-        while(mysql_stmt_fetch(stmt) == 0) {
-            printf("%-5s %-20s %-15s $%-9.2f\n", id, nombre, familia, precio);
-        }
-        mysql_free_result(result);
-    }
-
-    //
-
-    // Vincular parámetro de familia si se proporcionó
-    if(strlen(familia) > 0) {
-        MYSQL_BIND param = {0};
-        param.buffer_type = MYSQL_TYPE_STRING;
-        param.buffer = familia;
-        param.buffer_length = strlen(familia);
-        mysql_stmt_bind_param(stmt, &param);
-    }
-    
-    // Ejecuta y muestra los resultados (este paso lo debes implementar)
-    // Por ejemplo, recorrer el resultado y mostrar cada producto disponible.
-    
-    mysql_stmt_close(stmt); // Cerrar el statement después de usarlo
-    
-    // Paso 2: Seleccionar producto y cantidad
-    char id_producto[20];
-    int cantidad;
-    printf("\nIngrese ID del producto: ");
+    char id_producto[20] = {0};
+    printf("\nID Producto: ");
     scanf("%19s", id_producto);
-    printf("Ingrese cantidad: ");
-    scanf("%d", &cantidad);
-    
-    // Validar stock en tiempo real (Ejemplo simplificado)
-    int stock_disponible = 0;
-    MYSQL_STMT *stmt_stock = mysql_stmt_init(conn);
-    const char *stock_query = "SELECT stock, precio FROM productos WHERE id_producto = ?";
-    mysql_stmt_prepare(stmt_stock, stock_query, strlen(stock_query));
-    
-    MYSQL_BIND param_stock = {0};
-    param_stock.buffer_type = MYSQL_TYPE_STRING;
-    param_stock.buffer = id_producto;
-    param_stock.buffer_length = strlen(id_producto);
-    mysql_stmt_bind_param(stmt_stock, &param_stock);
-    
-    mysql_stmt_execute(stmt_stock);
-    //MYSQL_RES *result = mysql_stmt_result_metadata(stmt_stock);
-    result = mysql_stmt_result_metadata(stmt_stock);
-    if(result) {
-        MYSQL_ROW row = mysql_fetch_row(result);
-        if(row) {
-            stock_disponible = atoi(row[0]);
-            // Puedes también obtener el precio y almacenarlo en una variable.
-        }
-        mysql_free_result(result);
-    }
-    mysql_stmt_close(stmt_stock);
-    
-    if(cantidad > stock_disponible) {
-        printf("Error: Stock insuficiente (Disponible: %d)\n", stock_disponible);
+
+    // Escapar entrada del usuario
+    char id_escapado[40] = {0};
+    mysql_real_escape_string(conn, id_escapado, id_producto, strlen(id_producto));
+
+    // Obtener datos del producto
+    MYSQL_STMT *stmt = mysql_stmt_init(conn);
+    const char *query = "SELECT nombre, precio, stock FROM productos WHERE id_producto = ?";
+    if(mysql_stmt_prepare(stmt, query, strlen(query))) {
+        fprintf(stderr, "Error preparando consulta: %s\n", mysql_stmt_error(stmt));
         return;
     }
+
+    MYSQL_BIND param = {0};
+    param.buffer_type = MYSQL_TYPE_STRING;
+    param.buffer = id_escapado;
+    param.buffer_length = strlen(id_escapado);
     
-    // Paso 3: Agregar a la estructura temporal
+    if(mysql_stmt_bind_param(stmt, &param)) {
+        fprintf(stderr, "Error vinculando parámetro: %s\n", mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        return;
+    }
+
+    char nombre[50] = {0};
+    double precio = 0.0;
+    int stock = 0;
+    MYSQL_BIND result_bind[3] = {0};
+    
+    result_bind[0].buffer_type = MYSQL_TYPE_STRING;
+    result_bind[0].buffer = nombre;
+    result_bind[0].buffer_length = sizeof(nombre);
+    
+    result_bind[1].buffer_type = MYSQL_TYPE_DOUBLE;
+    result_bind[1].buffer = &precio;
+    
+    result_bind[2].buffer_type = MYSQL_TYPE_LONG;
+    result_bind[2].buffer = &stock;
+
+    if(mysql_stmt_bind_result(stmt, result_bind)) {
+        fprintf(stderr, "Error vinculando resultados: %s\n", mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        return;
+    }
+
+    if(mysql_stmt_execute(stmt)) {
+        fprintf(stderr, "Error ejecutando consulta: %s\n", mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        return;
+    }
+
+    if(mysql_stmt_fetch(stmt)) {
+        printf("Producto no encontrado!\n");
+        mysql_stmt_close(stmt);
+        return;
+    }
+    mysql_stmt_close(stmt);
+
+    // Validar cantidad
+    int cantidad = 0;
+    do {
+        printf("Cantidad (Stock disponible: %d): ", stock);
+        scanf("%d", &cantidad);
+        if(cantidad <= 0) printf("La cantidad debe ser mayor a cero\n");
+    } while(cantidad <= 0);
+
+    // Buscar producto existente
+    DetalleCotizacion *actual = cot->detalles;
+    while(actual) {
+        if(strcmp(actual->id_producto, id_producto) == 0) {
+            if((actual->cantidad + cantidad) > stock) {
+                printf("Error: Supera el stock disponible (%d + %d > %d)\n",
+                      actual->cantidad, cantidad, stock);
+                return;
+            }
+            actual->cantidad += cantidad;
+            actualizar_totales(cot);
+            printf("Cantidad actualizada: %d\n", actual->cantidad);
+            return;
+        }
+        actual = actual->siguiente;
+    }
+
+    // Validar stock para nuevo producto
+    if(cantidad > stock) {
+        printf("Error: Stock insuficiente (%d > %d)\n", cantidad, stock);
+        return;
+    }
+
+    // Crear nuevo detalle
     DetalleCotizacion *nuevo = malloc(sizeof(DetalleCotizacion));
     strcpy(nuevo->id_producto, id_producto);
-    // Aquí podrías buscar y asignar el nombre y el precio unitario si lo deseas.
+    strcpy(nuevo->nombre, nombre);
     nuevo->cantidad = cantidad;
-    nuevo->precio_negociado = 0; // Se puede calcular o pedir al usuario.
-    nuevo->siguiente = cotizacion->detalles;
-    cotizacion->detalles = nuevo;
+    nuevo->precio_negociado = precio;
+    nuevo->siguiente = cot->detalles;
+    cot->detalles = nuevo;
+    
+    actualizar_totales(cot);
+    printf("Producto agregado correctamente\n");
 }
 
 
+/**
+ * @brief Actualiza los totales de la cotización
+ */
+void actualizar_totales(Cotizacion *cot) {
+    cot->subtotal = 0.0;
+    DetalleCotizacion *det = cot->detalles;
+    while(det) {
+        cot->subtotal += det->cantidad * det->precio_negociado;
+        det = det->siguiente;
+    }
+    cot->total = cot->subtotal * 1.16;  // IVA del 16%
+}
 
 
-bool guardar_cotizacion(MYSQL* conn, Cotizacion *cotizacion) {
-    // Obtener número de secuencia de la configuración
+/**
+ * @brief Guarda la cotización en la base de datos
+ */
+bool guardar_cotizacion(MYSQL* conn, Cotizacion *cot) {
+    // Iniciar transacción
+    mysql_autocommit(conn, 0);
+    if(mysql_query(conn, "START TRANSACTION")) {
+        fprintf(stderr, "Error iniciando transacción: %s\n", mysql_error(conn));
+        return false;
+    }
+
+    // Obtener secuencia
+    // 
     if (mysql_query(conn, "SELECT secuencia_cotizacion FROM config")) {
-        fprintf(stderr, "Error al obtener la secuencia: %s\n", mysql_error(conn));
+        fprintf(stderr, "Error: %s\n", mysql_error(conn));
         return false;
     }
     MYSQL_RES *res = mysql_store_result(conn);
+    
     if(!res) {
-        fprintf(stderr, "Error: %s\n", mysql_error(conn));
+        mysql_query(conn, "ROLLBACK");
         return false;
     }
     MYSQL_ROW row = mysql_fetch_row(res);
     int secuencia = atoi(row[0]);
     mysql_free_result(res);
-    
-    // Generar número de cotización (ej: 20250001)
+
+    // Generar número de cotización
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
-    snprintf(cotizacion->numero_cotizacion, sizeof(cotizacion->numero_cotizacion),
-        "%04d%04d", tm.tm_year + 1900, secuencia);
-    
-    // Insertar la cotización en la tabla 'cotizaciones'
+    snprintf(cot->numero_cotizacion, 20, "COT-%03d", secuencia);
+
+    // Insertar cabecera
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
-    const char *query = "INSERT INTO cotizaciones (numero_cotizacion, cliente, subtotal, estado) VALUES (?, ?, ?, 'PENDIENTE')";
-    mysql_stmt_prepare(stmt, query, strlen(query));
+    const char *query = 
+        "INSERT INTO cotizaciones (numero_cotizacion, cliente, subtotal, estado, fecha) "
+        "VALUES (?, ?, ?, 'PENDIENTE', NOW())";
+        
+    if(mysql_stmt_prepare(stmt, query, strlen(query))) {
+        fprintf(stderr, "Error preparando query: %s\n", mysql_stmt_error(stmt));
+        mysql_query(conn, "ROLLBACK");
+        return false;
+    }
+
+    MYSQL_BIND params[3];
+    memset(params, 0, sizeof(params));
     
-    MYSQL_BIND params[3] = {0};
-    
-    // Vincular el número de cotización
     params[0].buffer_type = MYSQL_TYPE_STRING;
-    params[0].buffer = cotizacion->numero_cotizacion;
-    params[0].buffer_length = strlen(cotizacion->numero_cotizacion);
+    params[0].buffer = cot->numero_cotizacion;
+    params[0].buffer_length = strlen(cot->numero_cotizacion);
     
-    // Vincular el cliente
     params[1].buffer_type = MYSQL_TYPE_STRING;
-    params[1].buffer = cotizacion->cliente;
-    params[1].buffer_length = strlen(cotizacion->cliente);
+    params[1].buffer = cot->cliente;
+    params[1].buffer_length = strlen(cot->cliente);
     
-    // Vincular el subtotal
     params[2].buffer_type = MYSQL_TYPE_DOUBLE;
-    params[2].buffer = &cotizacion->subtotal;
-    
-    mysql_stmt_bind_param(stmt, params);
-    
-    if(mysql_stmt_execute(stmt)) {
-        fprintf(stderr, "Error al insertar cotización: %s\n", mysql_stmt_error(stmt));
+    params[2].buffer = &cot->subtotal;
+
+    if(mysql_stmt_bind_param(stmt, params)) {
+        fprintf(stderr, "Error vinculando parámetros: %s\n", mysql_stmt_error(stmt));
         mysql_stmt_close(stmt);
+        mysql_query(conn, "ROLLBACK");
+        return false;
+    }
+
+    if(mysql_stmt_execute(stmt)) {
+        fprintf(stderr, "Error insertando cabecera: %s\n", mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        mysql_query(conn, "ROLLBACK");
         return false;
     }
     mysql_stmt_close(stmt);
-    
-    // Recuperar el id de la cotización recién insertada (si es necesario)
-    int cotizacion_id = mysql_insert_id(conn);
-    
-    // Insertar cada detalle de la cotización
-    DetalleCotizacion *detalle = cotizacion->detalles;
-    while(detalle != NULL) {
-        MYSQL_STMT *stmt_detalle = mysql_stmt_init(conn);
-        const char *query_detalle = "INSERT INTO detalle_cotizacion (cotizacion_id, id_producto, cantidad, precio_negociado) VALUES (?, ?, ?, ?)";
-        mysql_stmt_prepare(stmt_detalle, query_detalle, strlen(query_detalle));
-        
-        MYSQL_BIND params_det[4] = {0};
-        int cantidad = detalle->cantidad;
-        double precio_negociado = detalle->precio_negociado;
-        
-        // Vincular parámetros para el detalle
-        params_det[0].buffer_type = MYSQL_TYPE_LONG;
-        params_det[0].buffer = &cotizacion_id;
-        
-        params_det[1].buffer_type = MYSQL_TYPE_STRING;
-        params_det[1].buffer = detalle->id_producto;
-        params_det[1].buffer_length = strlen(detalle->id_producto);
-        
-        params_det[2].buffer_type = MYSQL_TYPE_LONG;
-        params_det[2].buffer = &cantidad;
-        
-        params_det[3].buffer_type = MYSQL_TYPE_DOUBLE;
-        params_det[3].buffer = &precio_negociado;
-        
-        mysql_stmt_bind_param(stmt_detalle, params_det);
-        if(mysql_stmt_execute(stmt_detalle)) {
-            fprintf(stderr, "Error al insertar detalle: %s\n", mysql_stmt_error(stmt_detalle));
+
+    // Insertar detalles
+    DetalleCotizacion *det = cot->detalles;
+    while(det) {
+        MYSQL_STMT *stmt_det = mysql_stmt_init(conn);
+        const char *query_det = 
+            "INSERT INTO detalle_cotizacion (cotizacion_id, id_producto, cantidad, precio_negociado) "
+            "VALUES (LAST_INSERT_ID(), ?, ?, ?)";
+            
+        if(mysql_stmt_prepare(stmt_det, query_det, strlen(query_det))) {
+            fprintf(stderr, "Error preparando detalle: %s\n", mysql_stmt_error(stmt_det));
+            mysql_query(conn, "ROLLBACK");
+            return false;
         }
-        mysql_stmt_close(stmt_detalle);
-        detalle = detalle->siguiente;
+
+        MYSQL_BIND params_det[3];
+        memset(params_det, 0, sizeof(params_det));
+        
+        params_det[0].buffer_type = MYSQL_TYPE_STRING;
+        params_det[0].buffer = det->id_producto;
+        params_det[0].buffer_length = strlen(det->id_producto);
+        
+        params_det[1].buffer_type = MYSQL_TYPE_LONG;
+        params_det[1].buffer = &det->cantidad;
+        
+        params_det[2].buffer_type = MYSQL_TYPE_DOUBLE;
+        params_det[2].buffer = &det->precio_negociado;
+
+        if(mysql_stmt_bind_param(stmt_det, params_det)) {
+            fprintf(stderr, "Error vinculando detalle: %s\n", mysql_stmt_error(stmt_det));
+            mysql_stmt_close(stmt_det);
+            mysql_query(conn, "ROLLBACK");
+            return false;
+        }
+
+        if(mysql_stmt_execute(stmt_det)) {
+            fprintf(stderr, "Error insertando detalle: %s\n", mysql_stmt_error(stmt_det));
+            mysql_stmt_close(stmt_det);
+            mysql_query(conn, "ROLLBACK");
+            return false;
+        }
+        mysql_stmt_close(stmt_det);
+        det = det->siguiente;
     }
-    
-    // Actualizar la secuencia de cotización
-    char update_seq[100];
-    snprintf(update_seq, sizeof(update_seq),
-        "UPDATE config SET secuencia_cotizacion = %d", secuencia + 1);
-    if(mysql_query(conn, update_seq)) {
-        fprintf(stderr, "Error al actualizar secuencia: %s\n", mysql_error(conn));
+
+    // Actualizar secuencia
+    char update[50];
+    snprintf(update, sizeof(update), "UPDATE config SET secuencia_cotizacion = %d", secuencia + 1);
+    if(mysql_query(conn, update)) {
+        fprintf(stderr, "Error actualizando secuencia: %s\n", mysql_error(conn));
+        mysql_query(conn, "ROLLBACK");
+        return false;
     }
-    
+
+    mysql_query(conn, "COMMIT");
+    mysql_autocommit(conn, 1);
     return true;
 }
 
+/**
+ * @brief Muestra la cotización actual
+ */
+void mostrar_cotizacion(Cotizacion *cot) {
+    printf("\n=== COTIZACIÓN [%s] ===\n", cot->numero_cotizacion);
+    printf("Cliente: %s\nEstado: %s\n", cot->cliente, cot->estado);
+    printf("\n%-4s %-20s %-8s %-12s\n", "#", "Producto", "Cant.", "P.Unit.");
 
-void mostrar_cotizacion(Cotizacion *cotizacion) {
-    printf("\n=== COTIZACIÓN %s ===\n", cotizacion->numero_cotizacion);
-    printf("%-5s %-20s %-8s %-12s\n", "Código", "Producto", "Cantidad", "Precio Unit.");
-    
-    DetalleCotizacion *detalle = cotizacion->detalles;
-    while(detalle != NULL) {
-        printf("%-5s %-20s %-8d $%-10.2f\n", 
-              detalle->id_producto, detalle->nombre, 
-              detalle->cantidad, detalle->precio_negociado);
-        detalle = detalle->siguiente;
+    DetalleCotizacion *det = cot->detalles;
+    int contador = 1;
+    while(det) {
+        printf("%-4d %-20s %-8d $%-10.2f\n", 
+              contador++, det->nombre, det->cantidad, det->precio_negociado);
+        det = det->siguiente;
     }
-    printf("\nTotal: $%.2f\n", cotizacion->total);
+
+    printf("\nSUBTOTAL: $%.2f\n", cot->subtotal);
+    printf("TOTAL:    $%.2f\n", cot->total);
 }
 
 void eliminar_detalle(Cotizacion *cotizacion) {
-    int num_linea;
+    if (!cotizacion->detalles) {
+        printf("No hay productos para eliminar!\n");
+        return;
+    }
+
+    mostrar_cotizacion(cotizacion);  // Mostrar numeración actual
     printf("Número de línea a eliminar: ");
+    int num_linea;
     scanf("%d", &num_linea);
 
     DetalleCotizacion *actual = cotizacion->detalles;
     DetalleCotizacion *anterior = NULL;
     int contador = 1;
 
-    while(actual != NULL && contador != num_linea) {
+    while(actual && contador < num_linea) {
         anterior = actual;
         actual = actual->siguiente;
         contador++;
     }
 
-    if(actual == NULL) {
-        printf("Línea no encontrada\n");
+    if(!actual) {
+        printf("Línea inválida!\n");
         return;
     }
 
-    if(anterior == NULL) {
-        // Si se elimina el primer elemento
-        cotizacion->detalles = actual->siguiente;
-    } else {
-        anterior->siguiente = actual->siguiente;
-    }
+    if(!anterior) cotizacion->detalles = actual->siguiente;
+    else anterior->siguiente = actual->siguiente;
 
     free(actual);
-    printf("Línea eliminada\n");
+    actualizar_totales(cotizacion);  // Actualizar totales
+    printf("Línea eliminada. Total actual: $%.2f\n", cotizacion->total);
 }
 
+
+/// Función para mostrar el catálogo de productos filtrado por familia
+/// y permitir al usuario seleccionar un producto y cantidad para agregar a la cotización.
+
+void mostrar_catalogo(MYSQL* conn, const char* familia) {
+    char familia_escapada[100] = {0};
+    mysql_real_escape_string(conn, familia_escapada, familia, strlen(familia));
+
+    MYSQL_STMT *stmt = mysql_stmt_init(conn);
+    const char *query = 
+        "SELECT p.id_producto, p.nombre, f.descripcion, p.precio, p.stock "
+        "FROM productos p "
+        "JOIN familias f ON p.familia_id = f.id_familia "
+        "WHERE f.descripcion = ? OR ? = ''";
+
+    if (mysql_stmt_prepare(stmt, query, strlen(query))) {
+        fprintf(stderr, "Error preparando consulta: %s\n", mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        return;
+    }
+
+    MYSQL_BIND params[2];
+    memset(params, 0, sizeof(params));
+    params[0].buffer_type = MYSQL_TYPE_STRING;
+    params[0].buffer = (char*)familia_escapada;
+    params[0].buffer_length = strlen(familia_escapada);
+    params[1] = params[0];  // Mismo valor para ambos parámetros
+
+    if (mysql_stmt_bind_param(stmt, params)) {
+        fprintf(stderr, "Error vinculando parámetros: %s\n", mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        return;
+    }
+
+    if (mysql_stmt_execute(stmt)) {
+        fprintf(stderr, "Error ejecutando consulta: %s\n", mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        return;
+    }
+
+    // Configurar bind de resultados
+    char id_producto[20], nombre[50], descripcion[100];
+    double precio;
+    int stock;
+    
+    MYSQL_BIND bind[5];
+    memset(bind, 0, sizeof(bind));
+    
+    bind[0].buffer_type = MYSQL_TYPE_STRING;
+    bind[0].buffer = id_producto;
+    bind[0].buffer_length = sizeof(id_producto);
+    
+    bind[1].buffer_type = MYSQL_TYPE_STRING;
+    bind[1].buffer = nombre;
+    bind[1].buffer_length = sizeof(nombre);
+    
+    bind[2].buffer_type = MYSQL_TYPE_STRING;
+    bind[2].buffer = descripcion;
+    bind[2].buffer_length = sizeof(descripcion);
+    
+    bind[3].buffer_type = MYSQL_TYPE_DOUBLE;
+    bind[3].buffer = &precio;
+    
+    bind[4].buffer_type = MYSQL_TYPE_LONG;
+    bind[4].buffer = &stock;
+
+    mysql_stmt_bind_result(stmt, bind);
+
+    printf("\n=== PRODUCTOS DISPONIBLES ===\n");
+    printf("%-6s %-20s %-30s %-10s %-6s\n", "ID", "Nombre", "Descripción", "Precio", "Stock");
+
+    while(mysql_stmt_fetch(stmt) == 0) {
+        printf("%-6s %-20s %-30s $%-9.2f %-6d\n", 
+              id_producto, nombre, descripcion, precio, stock);
+    }
+
+    mysql_stmt_close(stmt);
+}

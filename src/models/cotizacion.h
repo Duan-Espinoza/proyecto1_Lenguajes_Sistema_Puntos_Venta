@@ -8,19 +8,18 @@ typedef struct DetalleCotizacion {
     char id_producto[20];
     char nombre[50];
     int cantidad;
-    float precio_unitario;
-    float precio_negociado;
+    double precio_negociado;
     struct DetalleCotizacion* siguiente;
 } DetalleCotizacion;
 
 typedef struct {
-    int id;
+    int id_cotizacion;
     char numero_cotizacion[20];
     char fecha[30];
     char estado[20];
     char cliente[100];
-    float subtotal;
-    float total;
+    double subtotal;
+    double total;
     DetalleCotizacion* detalles;
 } Cotizacion;
 
@@ -31,5 +30,7 @@ void agregar_detalle(Cotizacion *cotizacion, MYSQL* conn);
 bool guardar_cotizacion(MYSQL* conn, Cotizacion *cotizacion);
 void mostrar_cotizacion(Cotizacion *cotizacion);
 void eliminar_detalle(Cotizacion *cotizacion);
+void mostrar_catalogo(MYSQL* conn, const char* familia);
+void actualizar_totales(Cotizacion *cotizacion);
 
 #endif
