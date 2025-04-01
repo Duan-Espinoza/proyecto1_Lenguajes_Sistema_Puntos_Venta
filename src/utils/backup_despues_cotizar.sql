@@ -73,6 +73,34 @@ INSERT INTO `cotizaciones` VALUES (1,'pendiente','2025-04-01 14:36:56','COT-001'
 /*!40000 ALTER TABLE `cotizaciones` ENABLE KEYS */;
 UNLOCK TABLES;
 
+
+--
+-- Table structure for table `Facturacion`
+--
+--
+
+DROP TABLE IF EXISTS `facturacion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE facturacion (
+    id_factura INT NOT NULL AUTO_INCREMENT,
+    cotizacion_id INT NOT NULL,
+    cliente VARCHAR(100) NOT NULL,
+    cedula_juridica VARCHAR(20) NOT NULL,
+    telefono VARCHAR(20) NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    subtotal DECIMAL(10,2) NOT NULL,
+    impuesto DECIMAL(10,2) NOT NULL,
+    total DECIMAL(10,2) NOT NULL,
+    PRIMARY KEY (id_factura),
+    FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones(id_cotizacion)
+); 
+
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+
+
 --
 -- Table structure for table `detalle_cotizacion`
 --
