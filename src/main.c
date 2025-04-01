@@ -1,3 +1,5 @@
+#include "models/database.h"
+#include "models/admin.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,7 +11,7 @@ void mostrarMenuPrincipal() {
     printf("3. Salir\n");
 }
 
-void menuOpcionesGenerales() {
+void menuOpcionesGenerales(MYSQL* conn) {
     int opcion;
     while (1) {
         printf("\n--- Opciones Generales ---\n");
@@ -24,16 +26,16 @@ void menuOpcionesGenerales() {
 
         switch (opcion) {
             case 1:
-               // consultarCatalogoProductos();
+                consultarCatalogoProductos(conn);       
                 break;
             case 2:
-                //cotizarProductos();
+                // cotizarProductos();
                 break;
             case 3:
-                //modificarCotizacion();
+                // modificarCotizacion();
                 break;
             case 4:
-                //facturarVenta();
+                // facturarVenta();
                 break;
             case 5:
                 return;
@@ -43,11 +45,19 @@ void menuOpcionesGenerales() {
     }
 }
 
+void menuOpcionesAdministrativas(MYSQL* conn) {
+    if (autenticar_admin(conn)) {
+        menu_administrativo(conn);
+    } else {
+        printf("\n¡Credenciales incorrectas!\n");
+    }
+}
 
 int main() {
+    MYSQL* conn = conectar_db();
     int opcion;
 
-    while (1){
+    while (1) {
         mostrarMenuPrincipal();
         printf("Seleccione una opción: ");
         scanf("%d", &opcion);
@@ -55,17 +65,17 @@ int main() {
 
         switch (opcion) {
             case 1:
-                //menuOpcionesAdministrativas();
+                menuOpcionesAdministrativas(conn);
                 break;
             case 2:
-                menuOpcionesGenerales();
+                menuOpcionesGenerales(conn);
                 break;
             case 3:
                 printf("Saliendo del sistema...\n");
+                desconectar_db(conn);
                 return 0;
             default:
                 printf("Opción inválida\n");
+        }
     }
-}
-    return 0;
 }
