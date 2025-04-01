@@ -203,49 +203,57 @@ void actualizar_totales(Cotizacion *cot) {
  * @brief Guarda la cotización en la base de datos
  */
 bool guardar_cotizacion(MYSQL* conn, Cotizacion *cot) {
-    // Iniciar transacción
-    mysql_autocommit(conn, 0);
-    if(mysql_query(conn, "START TRANSACTION")) {
+    // 1. Iniciar transacción
+    mysql_autocommit(conn, 0);  // Desactivar autocommit
+    if (mysql_query(conn, "START TRANSACTION")) {
         fprintf(stderr, "Error iniciando transacción: %s\n", mysql_error(conn));
         return false;
     }
 
-    // Obtener secuencia
-    // 
-    if (mysql_query(conn, "SELECT secuencia_cotizacion FROM config")) {
-        fprintf(stderr, "Error: %s\n", mysql_error(conn));
-        return false;
-    }
-    MYSQL_RES *res = mysql_store_result(conn);
-    
-    if(!res) {
+    // 2. Bloquear y obtener secuencia (¡CRÍTICO!)
+    if (mysql_query(conn, "SELECT secuencia_cotizacion FROM config FOR UPDATE")) {  // ¡FOR UPDATE!
+        fprintf(stderr, "Error bloqueando secuencia: %s\n", mysql_error(conn));
         mysql_query(conn, "ROLLBACK");
         return false;
     }
+
+    MYSQL_RES *res = mysql_store_result(conn);
+    if (!res || mysql_num_rows(res) == 0) {
+        fprintf(stderr, "Error: No se encontró la secuencia\n");
+        if (res) mysql_free_result(res);
+        mysql_query(conn, "ROLLBACK");
+        return false;
+    }
+
     MYSQL_ROW row = mysql_fetch_row(res);
     int secuencia = atoi(row[0]);
     mysql_free_result(res);
 
-    // Generar número de cotización
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
-    snprintf(cot->numero_cotizacion, 20, "COT-%03d", secuencia);
+    // 3. Actualizar secuencia PRIMERO (evita duplicados)
+    char update[50];
+    snprintf(update, sizeof(update), "UPDATE config SET secuencia_cotizacion = %d", secuencia + 1);
+    if (mysql_query(conn, update)) {
+        fprintf(stderr, "Error actualizando secuencia: %s\n", mysql_error(conn));
+        mysql_query(conn, "ROLLBACK");
+        return false;
+    }
 
-    // Insertar cabecera
+    // 4. Generar número de cotización CON secuencia actualizada
+    snprintf(cot->numero_cotizacion, 20, "COT-%03d", secuencia + 1);  // ¡Usar secuencia + 1!
+
+    // 5. Insertar cabecera
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
     const char *query = 
         "INSERT INTO cotizaciones (numero_cotizacion, cliente, subtotal, estado, fecha) "
         "VALUES (?, ?, ?, 'PENDIENTE', NOW())";
-        
-    if(mysql_stmt_prepare(stmt, query, strlen(query))) {
+    
+    if (mysql_stmt_prepare(stmt, query, strlen(query))) {
         fprintf(stderr, "Error preparando query: %s\n", mysql_stmt_error(stmt));
         mysql_query(conn, "ROLLBACK");
         return false;
     }
 
-    MYSQL_BIND params[3];
-    memset(params, 0, sizeof(params));
-    
+    MYSQL_BIND params[3] = {0};
     params[0].buffer_type = MYSQL_TYPE_STRING;
     params[0].buffer = cot->numero_cotizacion;
     params[0].buffer_length = strlen(cot->numero_cotizacion);
@@ -257,14 +265,7 @@ bool guardar_cotizacion(MYSQL* conn, Cotizacion *cot) {
     params[2].buffer_type = MYSQL_TYPE_DOUBLE;
     params[2].buffer = &cot->subtotal;
 
-    if(mysql_stmt_bind_param(stmt, params)) {
-        fprintf(stderr, "Error vinculando parámetros: %s\n", mysql_stmt_error(stmt));
-        mysql_stmt_close(stmt);
-        mysql_query(conn, "ROLLBACK");
-        return false;
-    }
-
-    if(mysql_stmt_execute(stmt)) {
+    if (mysql_stmt_bind_param(stmt, params) || mysql_stmt_execute(stmt)) {
         fprintf(stderr, "Error insertando cabecera: %s\n", mysql_stmt_error(stmt));
         mysql_stmt_close(stmt);
         mysql_query(conn, "ROLLBACK");
@@ -272,23 +273,21 @@ bool guardar_cotizacion(MYSQL* conn, Cotizacion *cot) {
     }
     mysql_stmt_close(stmt);
 
-    // Insertar detalles
+    // 6. Insertar detalles usando LAST_INSERT_ID()
     DetalleCotizacion *det = cot->detalles;
-    while(det) {
+    while (det) {
         MYSQL_STMT *stmt_det = mysql_stmt_init(conn);
         const char *query_det = 
-            "INSERT INTO detalle_cotizacion (cotizacion_id, id_producto, cantidad, precio_negociado) "
+            "INSERT INTO detalle_cotizacion (cotizacion_id, producto_id, cantidad, precio_negociado) "
             "VALUES (LAST_INSERT_ID(), ?, ?, ?)";
-            
-        if(mysql_stmt_prepare(stmt_det, query_det, strlen(query_det))) {
+        
+        if (mysql_stmt_prepare(stmt_det, query_det, strlen(query_det))) {
             fprintf(stderr, "Error preparando detalle: %s\n", mysql_stmt_error(stmt_det));
             mysql_query(conn, "ROLLBACK");
             return false;
         }
 
-        MYSQL_BIND params_det[3];
-        memset(params_det, 0, sizeof(params_det));
-        
+        MYSQL_BIND params_det[3] = {0};
         params_det[0].buffer_type = MYSQL_TYPE_STRING;
         params_det[0].buffer = det->id_producto;
         params_det[0].buffer_length = strlen(det->id_producto);
@@ -299,14 +298,7 @@ bool guardar_cotizacion(MYSQL* conn, Cotizacion *cot) {
         params_det[2].buffer_type = MYSQL_TYPE_DOUBLE;
         params_det[2].buffer = &det->precio_negociado;
 
-        if(mysql_stmt_bind_param(stmt_det, params_det)) {
-            fprintf(stderr, "Error vinculando detalle: %s\n", mysql_stmt_error(stmt_det));
-            mysql_stmt_close(stmt_det);
-            mysql_query(conn, "ROLLBACK");
-            return false;
-        }
-
-        if(mysql_stmt_execute(stmt_det)) {
+        if (mysql_stmt_bind_param(stmt_det, params_det) || mysql_stmt_execute(stmt_det)) {
             fprintf(stderr, "Error insertando detalle: %s\n", mysql_stmt_error(stmt_det));
             mysql_stmt_close(stmt_det);
             mysql_query(conn, "ROLLBACK");
@@ -316,17 +308,14 @@ bool guardar_cotizacion(MYSQL* conn, Cotizacion *cot) {
         det = det->siguiente;
     }
 
-    // Actualizar secuencia
-    char update[50];
-    snprintf(update, sizeof(update), "UPDATE config SET secuencia_cotizacion = %d", secuencia + 1);
-    if(mysql_query(conn, update)) {
-        fprintf(stderr, "Error actualizando secuencia: %s\n", mysql_error(conn));
+    // 7. Confirmar transacción
+    if (mysql_query(conn, "COMMIT")) {
+        fprintf(stderr, "Error en COMMIT: %s\n", mysql_error(conn));
         mysql_query(conn, "ROLLBACK");
         return false;
     }
-
-    mysql_query(conn, "COMMIT");
-    mysql_autocommit(conn, 1);
+    
+    mysql_autocommit(conn, 1);  // Reactivar autocommit
     return true;
 }
 
