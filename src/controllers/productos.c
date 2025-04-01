@@ -5,7 +5,12 @@
 #include <string.h>
 #include <ctype.h>
 
-// Implementación de registro de familias
+/*
+Nombre: registrar_familia
+Descripción: Registra familias de productos en la base de datos a partir de un archivo de texto.
+Entrada: Objeto MYSQL* conn
+Salida: Impresión de resultados en la consola.
+*/
 void registrar_familia(MYSQL* conn) {
     char ruta_archivo[200];
     printf("\n--- REGISTRO MASIVO DE FAMILIAS ---\n");
@@ -86,8 +91,13 @@ void registrar_familia(MYSQL* conn) {
     printf("\n- Total líneas: %d\n", lineas_procesadas + lineas_erroneas);
 }
 
-//
-// Función auxiliar para verificar existencia de familia
+
+/*
+Nombre: familia_existe
+Descripción: Verifica si una familia existe en la base de datos.
+Entrada: Objeto MYSQL* conn, cadena de caracteres nombre_familia.
+Salida: 1 si existe, 0 si no.
+*/
 int familia_existe(MYSQL* conn, const char* nombre_familia) {
     char query[100];
     sprintf(query, "SELECT id_familia FROM familias WHERE descripcion = '%s'", nombre_familia);
@@ -103,13 +113,24 @@ int familia_existe(MYSQL* conn, const char* nombre_familia) {
     return existe;
 }
 
-// Función temporal para simular verificación de uso en cotizaciones
+/*
+Nombre: producto_tiene_transacciones
+Descripción: Verifica si un producto tiene transacciones asociadas.
+Entrada: Objeto MYSQL* conn, cadena de caracteres id_producto.
+Salida: 1 si tiene transacciones, 0 si no.
+*/
 int producto_tiene_transacciones(MYSQL* conn, const char* id_producto) {
     // Implementación temporal - siempre retorna falso por ahora
     return 0;
 }
 
 
+/*
+Nombre: registrar_productos_desde_archivo
+Descripción: Registra productos en la base de datos a partir de un archivo de texto.
+Entrada: Objeto MYSQL* conn
+Salida: Impresión de resultados en la consola.
+*/
 void registrar_productos_desde_archivo(MYSQL* conn) {
     char ruta_archivo[200];
     printf("\n--- REGISTRO MASIVO DE PRODUCTOS ---\n");
@@ -206,14 +227,18 @@ void registrar_productos_desde_archivo(MYSQL* conn) {
 }
 
 
-//
+/*
+Nombre: eliminar_producto_manual
+Descripción: Elimina un producto de la base de datos manualmente
+Entrada: Objeto MYSQL* conn
+Salida: Impresión de resultados en la consola.
+*/
 void eliminar_producto_manual(MYSQL* conn) {
     char id_producto[20];
     printf("\n--- ELIMINAR PRODUCTO ---\n");
     printf("Ingrese el ID del producto: ");
     scanf(" %19s", id_producto);
 
-    // Validar existencia
     char query_verificar[100];
     sprintf(query_verificar, "SELECT id_producto FROM productos WHERE id_producto = '%s'", id_producto);
     
@@ -230,13 +255,11 @@ void eliminar_producto_manual(MYSQL* conn) {
     }
     mysql_free_result(resultado);
 
-    // Validar uso en transacciones (implementación temporal)
     if (producto_tiene_transacciones(conn, id_producto)) {
         printf("No se puede eliminar: El producto tiene transacciones asociadas\n");
         return;
     }
 
-    // Ejecutar eliminación
     char query_eliminar[100];
     sprintf(query_eliminar, "DELETE FROM productos WHERE id_producto = '%s'", id_producto);
     
@@ -248,8 +271,12 @@ void eliminar_producto_manual(MYSQL* conn) {
 }
 
 
-
-// Implementación de gestion de productos
+/*
+Nombre: menu_gestion_productos
+Descripción: Muestra el menú de gestión de productos y selecciona la opción correspondiente.
+Entrada: Objeto MYSQL* conn
+Salida: Ninguna
+*/
 void menu_gestion_productos(MYSQL* conn) {
     int opcion;
     do {

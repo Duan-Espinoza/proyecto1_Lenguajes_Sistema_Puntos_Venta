@@ -7,8 +7,12 @@
 #include <string.h>
 
 
-
-// Autenticación de administrador
+/*
+Nombre: conectar_db
+Descripción: Conecta a la base de datos 'sistema_ventas' en MySQL.
+Entrada: Objeto MYSQL* conn
+Salida: Objeto MYSQL* conn conectado a la base de datos.
+*/
 int autenticar_admin(MYSQL* conn) {
     char usuario[50];
     char password[50];
@@ -135,7 +139,12 @@ void cargar_inventario(MYSQL* conn) {
 
 */
 
-// Menú administrativo
+/*
+Nombre: menu_administrativo
+Descripción: Muestra el menú administrativo y permite al usuario seleccionar una opción.
+Entrada: Objeto MYSQL* conn
+Salida: Ninguna.
+*/
 void menu_administrativo(MYSQL* conn) {
     int opcion;
     do {
@@ -157,11 +166,25 @@ void menu_administrativo(MYSQL* conn) {
     } while(opcion != 4);
 }
 
+/*
+Nombre: limpiarBuffer
+Descripción: Limpia el buffer de entrada para evitar problemas con fgets.
+Entrada: Ninguna.
+Salida: Ninguna.
+*/
 
 void limpiarBuffer() {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
+
+
+/*
+Nombre: existeFamilia
+Descripción: Verifica si una familia existe en la base de datos.
+Entrada: Objeto MYSQL* conn, cadena de caracteres familia.
+Salida: 1 si existe, 0 si no.
+*/
 
 int existeFamilia(MYSQL* conn, const char* familia) {
     char query[200];
@@ -185,6 +208,12 @@ int existeFamilia(MYSQL* conn, const char* familia) {
     return existe;
 }
 
+/*
+Nombre: consultarCatalogoProductos
+Descripción: Consulta el catálogo de productos en la base de datos.
+Entrada: Objeto MYSQL* conn
+Salida: Impresión del catálogo de productos en la consola.
+*/
 void consultarCatalogoProductos(MYSQL* conn) {
     MYSQL_RES* result;
     MYSQL_ROW row;

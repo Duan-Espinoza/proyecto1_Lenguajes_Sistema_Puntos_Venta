@@ -4,6 +4,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+/*
+Nombre: cargar_inventario
+Descripción: Carga un inventario desde un archivo de texto y actualiza la base de datos.
+Entrada: Objeto MYSQL* conn
+Salida: Impresión de resultados en la consola.
+*/
 void cargar_inventario(MYSQL* conn) {
     char ruta[200];
     printf("\n--- CARGA DE INVENTARIO ---\n");

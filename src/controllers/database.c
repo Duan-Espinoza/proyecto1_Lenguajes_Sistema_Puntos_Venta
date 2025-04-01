@@ -9,7 +9,7 @@
 MYSQL* conectar_db() {
     MYSQL* conn = mysql_init(NULL);
     if (!mysql_real_connect(conn, "localhost", "root", "Geovanny-11", 
-                          "sistema_ventas", 3306, NULL, 0)) {
+                        "sistema_ventas", 3306, NULL, 0)) {
         fprintf(stderr, "Error de conexión: %s\n", mysql_error(conn));
         mysql_close(conn);
         exit(1);
