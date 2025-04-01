@@ -4,6 +4,7 @@
 #include "models/admin.h"
 #include <stdio.h>
 #include "../models/cotizacion.h"
+#include "../models/facturacion.h"
 
 void menu_cotizacion(MYSQL* conn);
 
@@ -49,8 +50,7 @@ void menuOpcionesGenerales(MYSQL* conn) {
                 printf("\n¡Funcionalidad sin implementar!\n");
                 break;
             case 4:
-                //facturarVenta();
-                printf("\n¡Funcionalidad sin implementar!\n");
+                facturar(conn);
                 break;
             case 5:
                 return;

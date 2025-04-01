@@ -8,6 +8,7 @@ SRC = src/main.c \
       src/controllers/productos.c \
       src/controllers/ventas.c \
       src/controllers/cotizar.c \
+	  src/controllers/facturacion.c \
       src/utils/file_manager.c
 
 
