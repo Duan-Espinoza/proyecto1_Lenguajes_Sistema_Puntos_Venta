@@ -13,6 +13,43 @@ void menu_principal() {
     printf("Seleccione: ");
 }
 
+
+void menuOpcionesGenerales() {
+    int opcion;
+    while (1) {
+        printf("\n--- Opciones Generales ---\n");
+        printf("1. Consultar Catálogo de Productos\n");
+        printf("2. Cotizar Productos\n");
+        printf("3. Modificar Cotización\n");
+        printf("4. Facturar Venta\n");
+        printf("5. Volver al menú principal\n");
+        printf("Seleccione una opción: ");
+        scanf("%d", &opcion);
+        getchar(); 
+
+        switch (opcion) {
+            case 1:
+               // consultarCatalogoProductos();
+                break;
+            case 2:
+                //cotizarProductos();
+                break;
+            case 3:
+                //modificarCotizacion();
+                break;
+            case 4:
+                //facturarVenta();
+                break;
+            case 5:
+                return;
+            default:
+                printf("Opción inválida\n");
+        }
+    }
+}
+
+
+
 int main() {
     MYSQL* conn = conectar_db();
     int opcion;
@@ -30,7 +67,7 @@ int main() {
                 }
                 break;
             case 2:
-                printf("\n-- Módulo no implementado --\n");
+                menuOpcionesGenerales();
                 break;
             case 3:
                 printf("Saliendo del sistema...\n");
