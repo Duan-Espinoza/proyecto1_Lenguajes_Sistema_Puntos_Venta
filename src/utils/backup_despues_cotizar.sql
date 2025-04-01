@@ -29,7 +29,8 @@ CREATE TABLE `config` (
   `horario` varchar(50) DEFAULT NULL,
   `secuencia_factura` int DEFAULT NULL,
   `admin_user` varchar(50) DEFAULT NULL,
-  `admin_pass` varchar(50) DEFAULT NULL
+  `admin_pass` varchar(50) DEFAULT NULL,
+  `secuencia_cotizacion` int DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -39,7 +40,7 @@ CREATE TABLE `config` (
 
 LOCK TABLES `config` WRITE;
 /*!40000 ALTER TABLE `config` DISABLE KEYS */;
-INSERT INTO `config` VALUES ('Mi Tienda','2222-3333','3-101-000000','L-V 8am-5pm',1,'admin','admin123');
+INSERT INTO `config` VALUES ('Mi Tienda','2222-3333','3-101-000000','L-V 8am-5pm',1,'admin','admin123',1);
 /*!40000 ALTER TABLE `config` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -54,8 +55,12 @@ CREATE TABLE `cotizaciones` (
   `id_cotizacion` int NOT NULL AUTO_INCREMENT,
   `estado` varchar(20) DEFAULT 'pendiente',
   `fecha` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id_cotizacion`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  `numero_cotizacion` varchar(20) DEFAULT NULL,
+  `cliente` varchar(100) DEFAULT NULL,
+  `subtotal` decimal(10,2) DEFAULT NULL,
+  PRIMARY KEY (`id_cotizacion`),
+  UNIQUE KEY `numero_cotizacion` (`numero_cotizacion`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -64,6 +69,7 @@ CREATE TABLE `cotizaciones` (
 
 LOCK TABLES `cotizaciones` WRITE;
 /*!40000 ALTER TABLE `cotizaciones` DISABLE KEYS */;
+INSERT INTO `cotizaciones` VALUES (1,'pendiente','2025-04-01 14:36:56','COT-001','Cliente de Prueba',15000.50);
 /*!40000 ALTER TABLE `cotizaciones` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -79,12 +85,13 @@ CREATE TABLE `detalle_cotizacion` (
   `cotizacion_id` int DEFAULT NULL,
   `producto_id` varchar(20) DEFAULT NULL,
   `cantidad` int DEFAULT NULL,
+  `precio_negociado` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`id_detalle`),
   KEY `cotizacion_id` (`cotizacion_id`),
   KEY `detalle_cotizacion_ibfk_2` (`producto_id`),
   CONSTRAINT `detalle_cotizacion_ibfk_1` FOREIGN KEY (`cotizacion_id`) REFERENCES `cotizaciones` (`id_cotizacion`),
   CONSTRAINT `detalle_cotizacion_ibfk_2` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id_producto`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -93,6 +100,7 @@ CREATE TABLE `detalle_cotizacion` (
 
 LOCK TABLES `detalle_cotizacion` WRITE;
 /*!40000 ALTER TABLE `detalle_cotizacion` DISABLE KEYS */;
+INSERT INTO `detalle_cotizacion` VALUES (1,1,'Prod1',5,1450.75);
 /*!40000 ALTER TABLE `detalle_cotizacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -178,7 +186,7 @@ CREATE TABLE `productos` (
 
 LOCK TABLES `productos` WRITE;
 /*!40000 ALTER TABLE `productos` DISABLE KEYS */;
-INSERT INTO `productos` VALUES ('Prod1','Atún','Fam1',500.30,655.40,45),('Prod2','Arroz','Fam2',500.30,655.40,45);
+INSERT INTO `productos` VALUES ('Prod1','Atún','Fam1',500.30,655.40,105),('Prod2','Arroz','Fam2',500.30,655.40,33),('Prod3','Leche Entera','Fam3',800.00,999.90,30);
 /*!40000 ALTER TABLE `productos` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -191,4 +199,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-03-27 21:52:08
+-- Dump completed on 2025-04-01  8:48:38
