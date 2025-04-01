@@ -7,8 +7,12 @@
 #include <string.h>
 
 
-
-// Autenticación de administrador
+/*
+Nombre: conectar_db
+Descripción: Conecta a la base de datos 'sistema_ventas' en MySQL.
+Entrada: Objeto MYSQL* conn
+Salida: Objeto MYSQL* conn conectado a la base de datos.
+*/
 int autenticar_admin(MYSQL* conn) {
     char usuario[50];
     char password[50];
@@ -135,7 +139,12 @@ void cargar_inventario(MYSQL* conn) {
 
 */
 
-// Menú administrativo
+/*
+Nombre: menu_administrativo
+Descripción: Muestra el menú administrativo y permite al usuario seleccionar una opción.
+Entrada: Objeto MYSQL* conn
+Salida: Ninguna.
+*/
 void menu_administrativo(MYSQL* conn) {
     int opcion;
     do {
@@ -155,4 +164,119 @@ void menu_administrativo(MYSQL* conn) {
             default: printf("Opción inválida\n");
         }
     } while(opcion != 4);
+}
+
+/*
+Nombre: limpiarBuffer
+Descripción: Limpia el buffer de entrada para evitar problemas con fgets.
+Entrada: Ninguna.
+Salida: Ninguna.
+*/
+
+void limpiarBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+
+/*
+Nombre: existeFamilia
+Descripción: Verifica si una familia existe en la base de datos.
+Entrada: Objeto MYSQL* conn, cadena de caracteres familia.
+Salida: 1 si existe, 0 si no.
+*/
+
+int existeFamilia(MYSQL* conn, const char* familia) {
+    char query[200];
+    snprintf(query, sizeof(query), "SELECT COUNT(*) FROM familias WHERE id_familia = '%s'", familia);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Error en la validación de la familia: %s\n", mysql_error(conn));
+        return 0;
+    }
+
+    MYSQL_RES* result = mysql_store_result(conn);
+    if (!result) {
+        fprintf(stderr, "Error al obtener resultados: %s\n", mysql_error(conn));
+        return 0;
+    }
+
+    MYSQL_ROW row = mysql_fetch_row(result);
+    int existe = row ? atoi(row[0]) : 0;
+
+    mysql_free_result(result);
+    return existe;
+}
+
+/*
+Nombre: consultarCatalogoProductos
+Descripción: Consulta el catálogo de productos en la base de datos.
+Entrada: Objeto MYSQL* conn
+Salida: Impresión del catálogo de productos en la consola.
+*/
+void consultarCatalogoProductos(MYSQL* conn) {
+    MYSQL_RES* result;
+    MYSQL_ROW row;
+    char query[300];
+    char familia[50];
+    char familiaEscapada[100];
+
+    printf("\n--- CONSULTAR CATÁLOGO DE PRODUCTOS ---\n");
+    printf("Filtrar por familia (deje en blanco para mostrar todos): ");
+
+    if (fgets(familia, sizeof(familia), stdin) == NULL) {
+        fprintf(stderr, "Error al leer la entrada.\n");
+        return;
+    }
+
+    familia[strcspn(familia, "\n")] = 0;
+
+    if (strlen(familia) >= sizeof(familia) - 1) {
+        printf("Error: La entrada es demasiado larga.\n");
+        limpiarBuffer();
+        return;
+    }
+
+    if (strlen(familia) > 0) {
+        mysql_real_escape_string(conn, familiaEscapada, familia, strlen(familia));
+
+        if (!existeFamilia(conn, familiaEscapada)) {
+            printf("\nError: La familia ingresada no existe.\n");
+            return;
+        }
+
+        snprintf(query, sizeof(query),
+                 "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos WHERE familia_id = '%s'",
+                 familiaEscapada);
+    } else {
+        snprintf(query, sizeof(query),
+                 "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos");
+    }
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Error en la consulta: %s\n", mysql_error(conn));
+        return;
+    }
+
+    result = mysql_store_result(conn);
+    if (!result) {
+        fprintf(stderr, "Error al obtener resultados: %s\n", mysql_error(conn));
+        return;
+    }
+
+    int num_rows = mysql_num_rows(result);
+    if (num_rows == 0) {
+        printf("\nNo se encontraron productos en esta familia.\n");
+        mysql_free_result(result);
+        return;
+    }
+
+    printf("\n%-5s | %-20s | %-20s | %-10s | %-5s\n", "ID", "Nombre", "Familia", "Precio", "Stock");
+    printf("--------------------------------------------------------------------------------------\n");
+
+    while ((row = mysql_fetch_row(result))) {
+        printf("%-5s | %-20s | %-20s | %-10s | %-5s\n", row[0], row[1], row[2], row[3], row[4]);
+    }
+    
+    mysql_free_result(result);
 }

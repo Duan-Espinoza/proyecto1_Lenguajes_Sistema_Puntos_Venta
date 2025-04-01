@@ -1,13 +1,12 @@
-#include <stdlib.h>
-#include <string.h>
 #include "models/database.h"
 #include "models/admin.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-
-void menu_principal() {
-    printf("\n=== SISTEMA DE PUNTO DE VENTA ===\n");
-    printf("1. Acceso administrativo\n");
+void mostrarMenuPrincipal() {
+    printf("\n--- Sistema de Punto de Venta ---\n");
+    printf("1. Opciones Administrativas\n");
     printf("2. Opciones Generales\n");
     printf("3. Salir\n");
     printf("Seleccione: ");
@@ -54,29 +53,25 @@ int main() {
     MYSQL* conn = conectar_db();
     int opcion;
 
-    do {
-        menu_principal();
+    while (1) {
+        mostrarMenuPrincipal();
+        printf("Seleccione una opción: ");
         scanf("%d", &opcion);
+        getchar();
 
-        switch(opcion) {
+        switch (opcion) {
             case 1:
-                if(autenticar_admin(conn)) {
-                    menu_administrativo(conn);
-                } else {
-                    printf("\n¡Credenciales incorrectas!\n");
-                }
+                menuOpcionesAdministrativas(conn);
                 break;
             case 2:
-                menuOpcionesGenerales();
+                menuOpcionesGenerales(conn);
                 break;
             case 3:
                 printf("Saliendo del sistema...\n");
-                break;
+                desconectar_db(conn);
+                return 0;
             default:
-                printf("Opción no válida\n");
+                printf("Opción inválida\n");
         }
-    } while(opcion != 3);
-
-    desconectar_db(conn);
-    return 0;
+    }
 }
