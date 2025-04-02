@@ -2,9 +2,11 @@
 #include "../models/productos.h"
 #include "../models/database.h"
 #include "../models/ventas.h"
+#include "../models/facturacion.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 
 
 /*
@@ -152,7 +154,8 @@ void menu_administrativo(MYSQL* conn) {
         printf("1. Registrar familia\n");
         printf("2. Gestión de productos\n");
         printf("3. Cargar inventario\n");
-        printf("4. Volver\n");
+        printf("4. Consulta de facturas\n");
+        printf("5. Volver\n");
         printf("Opción: ");
         scanf("%d", &opcion);
 
@@ -160,10 +163,11 @@ void menu_administrativo(MYSQL* conn) {
             case 1: registrar_familia(conn); break;
             case 2: menu_gestion_productos(conn); break;
             case 3: cargar_inventario(conn); break;
-            case 4: printf("Volviendo...\n"); break;
+            case 4: consultaDeFacturas(conn); break;
+            case 5: printf("Volviendo...\n"); break;
             default: printf("Opción inválida\n");
         }
-    } while(opcion != 4);
+    } while(opcion != 5);
 }
 
 /*
@@ -245,11 +249,11 @@ void consultarCatalogoProductos(MYSQL* conn) {
         }
 
         snprintf(query, sizeof(query),
-                 "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos WHERE familia_id = '%s'",
-                 familiaEscapada);
+                "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos WHERE familia_id = '%s'",
+                familiaEscapada);
     } else {
         snprintf(query, sizeof(query),
-                 "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos");
+                "SELECT id_producto, nombre, familia_id, costo, precio, stock FROM productos");
     }
 
     if (mysql_query(conn, query)) {
