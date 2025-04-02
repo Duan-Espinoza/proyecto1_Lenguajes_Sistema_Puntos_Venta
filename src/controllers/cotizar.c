@@ -9,6 +9,10 @@
 
 /**
  * @brief Crea e inicializa una nueva cotización
+ * Entrada: Ninguna
+ * Salida: Puntero a la nueva cotización
+ * Restricciones: Asigna memoria para la cotización
+ *              y establece valores predeterminados
  */
 Cotizacion* nueva_cotizacion() {
     Cotizacion *cot = malloc(sizeof(Cotizacion));
@@ -33,6 +37,10 @@ Cotizacion* nueva_cotizacion() {
 
 /**
  * @brief Menú principal de cotización
+ * Entrada: Conexión a la base de datos
+ * Salida: Permite al usuario agregar productos, eliminar productos
+ * y guardar la cotización
+ * Restricciones: Verifica stock y evita duplicados
  */
 void menu_cotizacion(MYSQL* conn) {
     Cotizacion *cot = nueva_cotizacion();
@@ -71,6 +79,9 @@ void menu_cotizacion(MYSQL* conn) {
 
 /**
  * @brief Agrega un producto a la cotización
+ * Entrada: ID del producto y cantidad
+ * Salida: Actualiza la cotización con el nuevo detalle
+ * Restricciones: Verifica stock y evita duplicados
  */
 void agregar_detalle(Cotizacion *cot, MYSQL* conn) {
     char familia[50] = {0};
@@ -187,6 +198,9 @@ void agregar_detalle(Cotizacion *cot, MYSQL* conn) {
 
 /**
  * @brief Actualiza los totales de la cotización
+ * Entrada: Puntero a la cotización
+ * Salida: Actualiza subtotal y total
+ * Restricciones: Recorre la lista de detalles
  */
 void actualizar_totales(Cotizacion *cot) {
     cot->subtotal = 0.0;
@@ -201,6 +215,9 @@ void actualizar_totales(Cotizacion *cot) {
 
 /**
  * @brief Guarda la cotización en la base de datos
+ * Entrada: Conexión a la base de datos y cotización
+ * Salida: True si se guardó correctamente, false en caso contrario
+ * Restricciones: Usa transacciones para evitar inconsistencias
  */
 bool guardar_cotizacion(MYSQL* conn, Cotizacion *cot) {
     // 1. Iniciar transacción
@@ -321,6 +338,10 @@ bool guardar_cotizacion(MYSQL* conn, Cotizacion *cot) {
 
 /**
  * @brief Muestra la cotización actual
+ * Entrada: Puntero a la cotización
+ * Salida: Imprime la cotización en consola
+ * Restricciones: Formato de salida
+ *              y totales calculados
  */
 void mostrar_cotizacion(Cotizacion *cot) {
     printf("\n=== COTIZACIÓN [%s] ===\n", cot->numero_cotizacion);
@@ -377,6 +398,12 @@ void eliminar_detalle(Cotizacion *cotizacion) {
 /// Función para mostrar el catálogo de productos filtrado por familia
 /// y permitir al usuario seleccionar un producto y cantidad para agregar a la cotización.
 
+/**
+ * @brief Muestra el catálogo de productos filtrado por familia
+ * Entrada: Conexión a la base de datos y familia
+ * Salida: Imprime el catálogo en consola
+ * Restricciones: Usa consultas preparadas para evitar inyecciones SQL
+ */
 void mostrar_catalogo(MYSQL* conn, const char* familia) {
     char familia_escapada[100] = {0};
     mysql_real_escape_string(conn, familia_escapada, familia, strlen(familia));
@@ -453,7 +480,12 @@ void mostrar_catalogo(MYSQL* conn, const char* familia) {
 }
 
 
-//
+/**
+ * @brief Actualiza la cotización en la base de datos
+ * Entrada: Conexión a la base de datos y cotización
+ * Salida: True si se actualizó correctamente, false en caso contrario
+ * Restricciones: Usa transacciones para evitar inconsistencias
+ */
 
 bool actualizar_cotizacion(MYSQL* conn, Cotizacion *cot) {
     mysql_autocommit(conn, 0);
@@ -536,6 +568,12 @@ bool actualizar_cotizacion(MYSQL* conn, Cotizacion *cot) {
     return true;
 }
 //
+/**
+ * @brief Modifica una cotización existente
+ * Entrada: Conexión a la base de datos
+ * Salida: Permite al usuario modificar la cotización
+ * Restricciones: Verifica si la cotización existe y no está facturada
+ */
 void modificar_cotizacion(MYSQL* conn) {
     char numero_cotizacion[20];
     printf("\nIngrese número de cotización: ");
@@ -577,6 +615,12 @@ void modificar_cotizacion(MYSQL* conn) {
     } while(1);
 }
 
+/**
+ * @brief Carga una cotización existente desde la base de datos
+ * Entrada: Conexión a la base de datos y número de cotización
+ * Salida: Puntero a la cotización cargada o NULL si no existe
+ * Restricciones: Usa consultas preparadas para evitar inyecciones SQL
+ */
 Cotizacion* cargar_cotizacion(MYSQL* conn, const char* numero_cotizacion) {
     Cotizacion *cot = nueva_cotizacion();
     
