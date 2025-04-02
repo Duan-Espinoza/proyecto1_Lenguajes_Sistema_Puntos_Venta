@@ -201,3 +201,14 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2025-04-01  8:48:38
+
+CREATE TABLE detalle_factura (
+    id_detalle INT NOT NULL AUTO_INCREMENT,
+    factura_id INT NOT NULL,
+    producto_id VARCHAR(20) NOT NULL,
+    cantidad INT DEFAULT NULL,
+    precio_negociado DECIMAL(10,2) DEFAULT NULL,
+    PRIMARY KEY (id_detalle),
+    FOREIGN KEY (factura_id) REFERENCES facturacion(id_factura),
+    FOREIGN KEY (producto_id) REFERENCES productos(id_producto)
+);

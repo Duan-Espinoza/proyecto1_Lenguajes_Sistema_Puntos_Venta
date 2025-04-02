@@ -21,5 +21,7 @@ void facturar(MYSQL *conn);
 int verificarCotizacion(MYSQL *conn, const char *numero_cotizacion);
 void descontarStock(MYSQL *conn, int cotizacion_id);
 void mostrarFactura(MYSQL *conn);
+void ajustarCantidades(MYSQL *conn, int cotizacion_id);
+void consultaDeFacturas(MYSQL *conn);
 
 #endif

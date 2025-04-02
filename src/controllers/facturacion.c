@@ -218,3 +218,110 @@ void mostrarFactura(MYSQL *conn) {
     mysql_free_result(result);
 }
 
+
+/**
+ * Nombre: consultaDeFacturas
+ * Descripción: Esta función consulta y muestra una lista de facturas almacenadas en la base de datos.
+ * Entrada: Un puntero a la conexión de MySQL.
+ * Salida: Ninguna.
+ */
+
+void consultaDeFacturas(MYSQL *conn) {
+    char query[256];
+
+    // Obtener lista de facturas
+    snprintf(query, sizeof(query), "SELECT id_factura, fecha, subtotal, total FROM facturacion ORDER BY id_factura DESC");
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Error en la consulta de facturas: %s\n", mysql_error(conn));
+        return;
+    }
+
+    MYSQL_RES *result = mysql_store_result(conn);
+    if (!result) {
+        fprintf(stderr, "Error al obtener las facturas: %s\n", mysql_error(conn));
+        return;
+    }
+
+    MYSQL_ROW row;
+    printf("\n--- LISTADO DE FACTURAS ---\n");
+    printf("%-10s | %-20s | %-10s | %-10s\n", "ID Factura", "Fecha y Hora", "Subtotal", "Total");
+    printf("-------------------------------------------------------------\n");
+
+    while ((row = mysql_fetch_row(result))) {
+        printf("%-10s | %-20s | %-10s | %-10s\n", row[0], row[1], row[2], row[3]);
+    }
+
+    mysql_free_result(result);
+
+    // Pedir al usuario que seleccione una factura
+    int id_factura;
+    printf("\nIngrese el ID de la factura para ver los detalles: ");
+    if (scanf("%d", &id_factura) != 1) {
+        printf("Entrada inválida.\n");
+        return;
+    }
+
+    // Obtener detalles del encabezado de la factura
+    snprintf(query, sizeof(query),
+             "SELECT id_factura, cotizacion_id, cliente, cedula_juridica, telefono, subtotal, impuesto, total, fecha "
+             "FROM facturacion WHERE id_factura = %d", id_factura);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Error al obtener detalles de la factura: %s\n", mysql_error(conn));
+        return;
+    }
+
+    result = mysql_store_result(conn);
+    if (!result) {
+        fprintf(stderr, "Error al obtener el encabezado de la factura: %s\n", mysql_error(conn));
+        return;
+    }
+
+    row = mysql_fetch_row(result);
+    if (!row) {
+        printf("Factura con ID %d no encontrada.\n", id_factura);
+        mysql_free_result(result);
+        return;
+    }
+
+    // Mostrar encabezado de la factura
+    printf("\n--- DETALLES DE LA FACTURA %d ---\n", id_factura);
+    printf("Cliente: %s\n", row[2]);
+    printf("Cédula Jurídica: %s\n", row[3]);
+    printf("Teléfono: %s\n", row[4]);
+    printf("Fecha y Hora: %s\n", row[8]);
+    printf("Subtotal: %.2f\n", atof(row[5]));
+    printf("Impuesto: %.2f\n", atof(row[6]));
+    printf("Total: %.2f\n", atof(row[7]));
+
+    mysql_free_result(result);
+
+    // Obtener detalles de los productos en la cotización (detalle_cotizacion en lugar de detalle_factura)
+    snprintf(query, sizeof(query),
+             "SELECT p.id_producto, p.nombre, dc.cantidad, dc.precio_negociado "
+             "FROM detalle_cotizacion dc "
+             "JOIN productos p ON dc.producto_id = p.id_producto "
+             "WHERE dc.cotizacion_id = %d", id_factura);  // Usamos cotizacion_id
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Error al obtener detalles de los productos: %s\n", mysql_error(conn));
+        return;
+    }
+
+    result = mysql_store_result(conn);
+    if (!result) {
+        fprintf(stderr, "Error al obtener los productos de la cotización: %s\n", mysql_error(conn));
+        return;
+    }
+
+    printf("\n--- PRODUCTOS EN LA FACTURA ---\n");
+    printf("%-10s | %-20s | %-10s | %-10s\n", "ID Producto", "Nombre", "Cantidad", "Precio Unitario");
+    printf("-------------------------------------------------------------\n");
+
+    while ((row = mysql_fetch_row(result))) {
+        printf("%-10s | %-20s | %-10s | %-10s\n", row[0], row[1], row[2], row[3]);
+    }
+    
+    mysql_free_result(result);
+}
