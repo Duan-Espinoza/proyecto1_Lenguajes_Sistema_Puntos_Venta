@@ -46,8 +46,7 @@ void menuOpcionesGenerales(MYSQL* conn) {
                 menu_cotizacion(conn);
                 break;
             case 3:
-                //modificarCotizacion();
-                printf("\n¡Funcionalidad sin implementar!\n");
+                modificar_cotizacion(conn);
                 break;
             case 4:
                 facturar(conn);

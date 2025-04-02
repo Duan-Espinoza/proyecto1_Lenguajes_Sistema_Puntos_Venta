@@ -3,7 +3,7 @@
 
 #include <mysql.h>
 #include <stdbool.h>
-
+//Structs para la gestión de cotizaciones:
 typedef struct DetalleCotizacion {
     char id_producto[20];
     char nombre[50];
@@ -23,6 +23,8 @@ typedef struct {
     DetalleCotizacion* detalles;
 } Cotizacion;
 
+// Prototipos de funciones para la gestión de cotizaciones:
+bool actualizar_cotizacion(MYSQL* conn, Cotizacion *cotizacion);
 // Prototipos de funciones
 Cotizacion* nueva_cotizacion();
 void menu_cotizacion(MYSQL* conn);
@@ -32,5 +34,9 @@ void mostrar_cotizacion(Cotizacion *cotizacion);
 void eliminar_detalle(Cotizacion *cotizacion);
 void mostrar_catalogo(MYSQL* conn, const char* familia);
 void actualizar_totales(Cotizacion *cotizacion);
+// Prototipos
+void modificar_cotizacion(MYSQL* conn);
+Cotizacion* cargar_cotizacion(MYSQL* conn, const char* numero_cotizacion);
+
 
 #endif
