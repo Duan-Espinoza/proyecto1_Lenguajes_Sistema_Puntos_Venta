@@ -454,6 +454,88 @@ void mostrar_catalogo(MYSQL* conn, const char* familia) {
 
 
 //
+
+bool actualizar_cotizacion(MYSQL* conn, Cotizacion *cot) {
+    mysql_autocommit(conn, 0);
+    if(mysql_query(conn, "START TRANSACTION")) {
+        fprintf(stderr, "Error iniciando transacción: %s\n", mysql_error(conn));
+        return false;
+    }
+
+    // Actualizar cabecera
+    MYSQL_STMT *stmt = mysql_stmt_init(conn);
+    const char *query = 
+        "UPDATE cotizaciones SET subtotal = ? "
+        "WHERE id_cotizacion = ?";
+    
+    mysql_stmt_prepare(stmt, query, strlen(query));
+    
+    MYSQL_BIND params[2];
+    memset(params, 0, sizeof(params));
+    
+    params[0].buffer_type = MYSQL_TYPE_DOUBLE;
+    params[0].buffer = &cot->subtotal;
+    
+    params[1].buffer_type = MYSQL_TYPE_LONG;
+    params[1].buffer = &cot->id_cotizacion;
+    
+    mysql_stmt_bind_param(stmt, params);
+    
+    if(mysql_stmt_execute(stmt)) {
+        mysql_stmt_close(stmt);
+        mysql_query(conn, "ROLLBACK");
+        return false;
+    }
+    mysql_stmt_close(stmt);
+
+    // Eliminar detalles antiguos
+    char delete_query[100];
+    sprintf(delete_query, "DELETE FROM detalle_cotizacion WHERE cotizacion_id = %d", cot->id_cotizacion);
+    if(mysql_query(conn, delete_query)) {
+        mysql_query(conn, "ROLLBACK");
+        return false;
+    }
+
+    // Insertar nuevos detalles
+    DetalleCotizacion *det = cot->detalles;
+    while(det) {
+        MYSQL_STMT *stmt_det = mysql_stmt_init(conn);
+        const char *query_det = 
+            "INSERT INTO detalle_cotizacion (cotizacion_id, producto_id, cantidad, precio_negociado) "
+            "VALUES (?, ?, ?, ?)";
+        
+        mysql_stmt_prepare(stmt_det, query_det, strlen(query_det));
+        
+        MYSQL_BIND params_det[4];
+        memset(params_det, 0, sizeof(params_det));
+        
+        params_det[0].buffer_type = MYSQL_TYPE_LONG;
+        params_det[0].buffer = &cot->id_cotizacion;
+        
+        params_det[1].buffer_type = MYSQL_TYPE_STRING;
+        params_det[1].buffer = det->id_producto;
+        params_det[1].buffer_length = strlen(det->id_producto);
+        
+        params_det[2].buffer_type = MYSQL_TYPE_LONG;
+        params_det[2].buffer = &det->cantidad;
+        
+        params_det[3].buffer_type = MYSQL_TYPE_DOUBLE;
+        params_det[3].buffer = &det->precio_negociado;
+        
+        if(mysql_stmt_bind_param(stmt_det, params_det) || mysql_stmt_execute(stmt_det)) {
+            mysql_stmt_close(stmt_det);
+            mysql_query(conn, "ROLLBACK");
+            return false;
+        }
+        mysql_stmt_close(stmt_det);
+        det = det->siguiente;
+    }
+
+    mysql_query(conn, "COMMIT");
+    mysql_autocommit(conn, 1);
+    return true;
+}
+//
 void modificar_cotizacion(MYSQL* conn) {
     char numero_cotizacion[20];
     printf("\nIngrese número de cotización: ");
@@ -593,83 +675,3 @@ Cotizacion* cargar_cotizacion(MYSQL* conn, const char* numero_cotizacion) {
     return cot;
 }
 
-bool actualizar_cotizacion(MYSQL* conn, Cotizacion *cot) {
-    mysql_autocommit(conn, 0);
-    if(mysql_query(conn, "START TRANSACTION")) {
-        fprintf(stderr, "Error iniciando transacción: %s\n", mysql_error(conn));
-        return false;
-    }
-
-    // Actualizar cabecera
-    MYSQL_STMT *stmt = mysql_stmt_init(conn);
-    const char *query = 
-        "UPDATE cotizaciones SET subtotal = ? "
-        "WHERE id_cotizacion = ?";
-    
-    mysql_stmt_prepare(stmt, query, strlen(query));
-    
-    MYSQL_BIND params[2];
-    memset(params, 0, sizeof(params));
-    
-    params[0].buffer_type = MYSQL_TYPE_DOUBLE;
-    params[0].buffer = &cot->subtotal;
-    
-    params[1].buffer_type = MYSQL_TYPE_LONG;
-    params[1].buffer = &cot->id_cotizacion;
-    
-    mysql_stmt_bind_param(stmt, params);
-    
-    if(mysql_stmt_execute(stmt)) {
-        mysql_stmt_close(stmt);
-        mysql_query(conn, "ROLLBACK");
-        return false;
-    }
-    mysql_stmt_close(stmt);
-
-    // Eliminar detalles antiguos
-    char delete_query[100];
-    sprintf(delete_query, "DELETE FROM detalle_cotizacion WHERE cotizacion_id = %d", cot->id_cotizacion);
-    if(mysql_query(conn, delete_query)) {
-        mysql_query(conn, "ROLLBACK");
-        return false;
-    }
-
-    // Insertar nuevos detalles
-    DetalleCotizacion *det = cot->detalles;
-    while(det) {
-        MYSQL_STMT *stmt_det = mysql_stmt_init(conn);
-        const char *query_det = 
-            "INSERT INTO detalle_cotizacion (cotizacion_id, producto_id, cantidad, precio_negociado) "
-            "VALUES (?, ?, ?, ?)";
-        
-        mysql_stmt_prepare(stmt_det, query_det, strlen(query_det));
-        
-        MYSQL_BIND params_det[4];
-        memset(params_det, 0, sizeof(params_det));
-        
-        params_det[0].buffer_type = MYSQL_TYPE_LONG;
-        params_det[0].buffer = &cot->id_cotizacion;
-        
-        params_det[1].buffer_type = MYSQL_TYPE_STRING;
-        params_det[1].buffer = det->id_producto;
-        params_det[1].buffer_length = strlen(det->id_producto);
-        
-        params_det[2].buffer_type = MYSQL_TYPE_LONG;
-        params_det[2].buffer = &det->cantidad;
-        
-        params_det[3].buffer_type = MYSQL_TYPE_DOUBLE;
-        params_det[3].buffer = &det->precio_negociado;
-        
-        if(mysql_stmt_bind_param(stmt_det, params_det) || mysql_stmt_execute(stmt_det)) {
-            mysql_stmt_close(stmt_det);
-            mysql_query(conn, "ROLLBACK");
-            return false;
-        }
-        mysql_stmt_close(stmt_det);
-        det = det->siguiente;
-    }
-
-    mysql_query(conn, "COMMIT");
-    mysql_autocommit(conn, 1);
-    return true;
-}

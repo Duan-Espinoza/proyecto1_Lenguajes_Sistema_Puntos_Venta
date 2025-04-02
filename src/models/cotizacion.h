@@ -23,6 +23,8 @@ typedef struct {
     DetalleCotizacion* detalles;
 } Cotizacion;
 
+// En cotizacion.h, agregar:
+bool actualizar_cotizacion(MYSQL* conn, Cotizacion *cotizacion);
 // Prototipos de funciones
 Cotizacion* nueva_cotizacion();
 void menu_cotizacion(MYSQL* conn);
@@ -35,5 +37,6 @@ void actualizar_totales(Cotizacion *cotizacion);
 // Prototipos
 void modificar_cotizacion(MYSQL* conn);
 Cotizacion* cargar_cotizacion(MYSQL* conn, const char* numero_cotizacion);
+
 
 #endif
