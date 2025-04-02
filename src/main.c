@@ -3,6 +3,11 @@
 #include "models/database.h"
 #include "models/admin.h"
 #include <stdio.h>
+#include "../models/cotizacion.h"
+#include "../models/facturacion.h"
+
+void menu_cotizacion(MYSQL* conn);
+
 
 /**
  * Función que muestra el menú principal del sistema de punto de venta.
@@ -38,16 +43,14 @@ void menuOpcionesGenerales(MYSQL* conn) {
                 consultarCatalogoProductos(conn);
                 break;
             case 2:
-                //cotizarProductos();
-                printf("\n¡Funcionalidad sin implementar!\n");
+                menu_cotizacion(conn);
                 break;
             case 3:
                 //modificarCotizacion();
                 printf("\n¡Funcionalidad sin implementar!\n");
                 break;
             case 4:
-                //facturarVenta();
-                printf("\n¡Funcionalidad sin implementar!\n");
+                facturar(conn);
                 break;
             case 5:
                 return;
