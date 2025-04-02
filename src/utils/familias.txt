@@ -1,0 +1,5 @@
+Fam1,Enlatados
+Fam2,Granos básicos
+Fam3,Lácteos
+Fam4,Electrodomésticos
+Fam5,Refrescos
