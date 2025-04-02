@@ -17,5 +17,8 @@ void cargar_inventario(MYSQL* conn);
 //Catalogo
 void consultarCatalogoProductos(MYSQL* conn);
 
+//Mostrar estadísticas
+void mostrar_estadisticas(MYSQL* conn);
+
 
 #endif

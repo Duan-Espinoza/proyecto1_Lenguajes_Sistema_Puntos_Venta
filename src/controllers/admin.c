@@ -155,7 +155,8 @@ void menu_administrativo(MYSQL* conn) {
         printf("2. Gestión de productos\n");
         printf("3. Cargar inventario\n");
         printf("4. Consulta de facturas\n");
-        printf("5. Volver\n");
+        printf("5. Ver estadísticas\n");  // Nueva opción
+        printf("6. Volver\n");
         printf("Opción: ");
         scanf("%d", &opcion);
 
@@ -164,10 +165,11 @@ void menu_administrativo(MYSQL* conn) {
             case 2: menu_gestion_productos(conn); break;
             case 3: cargar_inventario(conn); break;
             case 4: consultaDeFacturas(conn); break;
-            case 5: printf("Volviendo...\n"); break;
+            case 5: mostrar_estadisticas(conn); break;  // Nueva funcionalidad
+            case 6: printf("Volviendo...\n"); break;
             default: printf("Opción inválida\n");
         }
-    } while(opcion != 5);
+    } while(opcion != 6);
 }
 
 /*
@@ -283,4 +285,87 @@ void consultarCatalogoProductos(MYSQL* conn) {
     }
 
     mysql_free_result(result);
+}
+
+
+
+// admin.c
+void mostrar_estadisticas(MYSQL* conn) {
+    printf("\n=== ESTADÍSTICAS DEL SISTEMA ===\n");
+    
+    // 1. Cantidad de cotizaciones pendientes/facturadas
+    MYSQL_RES *res;
+    MYSQL_ROW row;
+    
+    // Cotizaciones Pendientes
+    mysql_query(conn, "SELECT COUNT(*) FROM cotizaciones WHERE estado = 'PENDIENTE'");
+    res = mysql_store_result(conn);
+    row = mysql_fetch_row(res);
+    printf("- Cotizaciones pendientes: %s\n", row[0]);
+    mysql_free_result(res);
+    
+    // Cotizaciones Facturadas
+    mysql_query(conn, "SELECT COUNT(*) FROM cotizaciones WHERE estado = 'FACTURADA'");
+    res = mysql_store_result(conn);
+    row = mysql_fetch_row(res);
+    printf("- Cotizaciones facturadas: %s\n", row[0]);
+    mysql_free_result(res);
+    
+    // 2. Promedio de compra
+    mysql_query(conn, "SELECT AVG(total) FROM cotizaciones WHERE estado = 'FACTURADA'");
+    res = mysql_store_result(conn);
+    row = mysql_fetch_row(res);
+    printf("- Promedio de compra: $%.2f\n", atof(row[0]));
+    mysql_free_result(res);
+    
+    // 3. Top 5 productos más vendidos
+    printf("\n--- Top 5 Productos Más Vendidos ---\n");
+    const char *query_top5 = 
+        "SELECT p.nombre, SUM(d.cantidad) AS total_vendido "
+        "FROM detalle_cotizacion d "
+        "JOIN productos p ON d.producto_id = p.id_producto "
+        "GROUP BY p.nombre ORDER BY total_vendido DESC LIMIT 5";
+    
+    mysql_query(conn, query_top5);
+    res = mysql_store_result(conn);
+    while ((row = mysql_fetch_row(res))) {
+        printf("%-20s | %-10s unidades\n", row[0], row[1]);
+    }
+    mysql_free_result(res);
+    
+    // 4. Producto más vendido por familia
+    printf("\n--- Producto Más Vendido por Familia ---\n");
+    const char *query_familias = 
+        "SELECT f.descripcion, p.nombre, MAX(total_vendido) "
+        "FROM ( "
+        "   SELECT p.familia_id, p.nombre, SUM(d.cantidad) AS total_vendido "
+        "   FROM detalle_cotizacion d "
+        "   JOIN productos p ON d.producto_id = p.id_producto "
+        "   GROUP BY p.familia_id, p.nombre "
+        ") AS ventas "
+        "JOIN familias f ON ventas.familia_id = f.id_familia "
+        "GROUP BY f.descripcion";
+    
+    mysql_query(conn, query_familias);
+    res = mysql_store_result(conn);
+    while ((row = mysql_fetch_row(res))) {
+        printf("%-15s | %-20s | %-5s unidades\n", row[0], row[1], row[2]);
+    }
+    mysql_free_result(res);
+    
+    // 5. Monto vendido por familia
+    printf("\n--- Ventas por Familia ---\n");
+    const char *query_ventas_familias = 
+        "SELECT f.descripcion, SUM(d.cantidad * d.precio_negociado) AS total "
+        "FROM detalle_cotizacion d "
+        "JOIN productos p ON d.producto_id = p.id_producto "
+        "JOIN familias f ON p.familia_id = f.id_familia "
+        "GROUP BY f.descripcion";
+    
+    mysql_query(conn, query_ventas_familias);
+    res = mysql_store_result(conn);
+    while ((row = mysql_fetch_row(res))) {
+        printf("%-20s | $%-10.2f\n", row[0], atof(row[1]));
+    }
+    mysql_free_result(res);
 }
